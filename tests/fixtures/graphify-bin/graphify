@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# `graphify` falso para tests/install_test.sh. Solo registra sus argumentos
+# en $FAKE_CLAUDE_STATE/tools.txt.
+S="${FAKE_CLAUDE_STATE:?FAKE_CLAUDE_STATE sin definir}"
+mkdir -p "$S"
+printf 'graphify %s\n' "$*" >>"$S/tools.txt"
+exit 0

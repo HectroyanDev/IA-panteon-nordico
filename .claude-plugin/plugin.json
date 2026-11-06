@@ -1,0 +1,9 @@
+{
+  "name": "nordic-pantheon",
+  "version": "1.6.0",
+  "description": "Panteón nórdico de Héctor: Odín, Hugin (o Hugin-graphify), Munin (backends mimir o memory), Skuld, Brokkr, Heimdall, Vár (vigilancia del plan), Bragi, Forseti y Hela, orquestados por Bifröst.",
+  "author": {
+    "name": "hectorgonzalez"
+  },
+  "types": "./types/index.d.ts"
+}

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# `claude` falso para tests/phase-bench_test.sh: registra los argumentos
+# (una llamada por línea, saltos de línea del prompt aplanados) y sale con 0. No hace ninguna llamada real.
+set -u
+printf '%s\n' "$(printf '%s' "$*" | tr '\n' ' ')" >>"${FAKE_BENCH_LOG:?FAKE_BENCH_LOG sin definir}"
+exit 0

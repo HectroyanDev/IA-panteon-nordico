@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Tyr lens result",
+  "type": "object",
+  "required": ["lens", "findings", "rereview"],
+  "properties": {
+    "lens": { "enum": ["logic", "security", "quality"] },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "line", "severity", "title", "description"],
+        "properties": {
+          "file": { "type": "string", "description": "Path as it appears in the diff (new side)" },
+          "line": { "type": "integer", "description": "Last line of the range, new side, inside the changed-lines map" },
+          "startLine": { "type": "integer", "description": "First line for multi-line ranges; omit for one line" },
+          "severity": { "enum": ["ALTA", "MEDIA", "BAJA"] },
+          "category": { "type": "string", "description": "e.g. sqli, xss, null-check, missing-test, acceptance-criteria, naming, a11y" },
+          "title": { "type": "string", "maxLength": 80 },
+          "description": { "type": "string" },
+          "fix": { "type": "string", "description": "Replacement code; omit if no concrete fix" },
+          "fixReplacesRange": { "type": "boolean", "description": "True if fix replaces exactly startLine..line (enables GitHub suggestion)" },
+          "language": { "type": "string" }
+        }
+      }
+    },
+    "rereview": {
+      "type": "array",
+      "description": "Only for previous Tyr comments in this lens",
+      "items": {
+        "type": "object",
+        "required": ["commentId", "status"],
+        "properties": {
+          "commentId": { "type": "string" },
+          "status": { "enum": ["fixed", "pending", "outdated"] },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "outsideDiff": {
+      "type": "array",
+      "description": "ALTA risks triggered by the change in unchanged code; summary only",
+      "items": { "type": "string" }
+    }
+  }
+}

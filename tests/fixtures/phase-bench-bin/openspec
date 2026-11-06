@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# `openspec` falso para tests/phase-bench_test.sh: no hace nada.
+exit 0

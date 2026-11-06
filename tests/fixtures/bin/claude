@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# `claude` falso para tests/install_test.sh. Registra cada llamada y simula
+# el estado de plugins, marketplaces y MCP en $FAKE_CLAUDE_STATE.
+#   FAKE_MIMIR=1  → `claude mcp get mimisbrunnr` tiene éxito (por defecto falla);
+#                   también tiene éxito tras un `mcp add` (marca mimir-registered)
+#   FAKE_MCP_ADD_FAIL=1 → `claude mcp add` falla con código 1 sin registrar
+set -euo pipefail
+
+S="${FAKE_CLAUDE_STATE:?FAKE_CLAUDE_STATE sin definir}"
+mkdir -p "$S/cache"
+touch "$S/plugins.txt" "$S/marketplaces.txt"
+printf '%s\n' "$*" >>"$S/log.txt"
+
+cache_of() { printf '%s/cache/%s' "$S" "$1"; }
+
+json_plugins() {
+  local first=1 id
+  printf '['
+  while IFS= read -r id; do
+    [ -n "$id" ] || continue
+    [ "$first" = 1 ] || printf ','
+    first=0
+    printf '\n  {"id": "%s", "version": "1.1.0", "scope": "user", "enabled": true, "installPath": "%s"}' \
+      "$id" "$(cache_of "$id")"
+  done <"$S/plugins.txt"
+  printf '\n]\n'
+}
+
+json_marketplaces() {
+  local first=1 name path
+  printf '['
+  while IFS=$'\t' read -r name path; do
+    [ -n "$name" ] || continue
+    [ "$first" = 1 ] || printf ','
+    first=0
+    printf '\n  {"name": "%s", "source": "directory", "path": "%s"}' "$name" "$path"
+  done <"$S/marketplaces.txt"
+  printf '\n]\n'
+}
+
+drop_line() { # $1 archivo, $2 patrón (inicio de línea exacto)
+  grep -v -F -x -e "$2" "$1" >"$1.tmp" || true
+  mv "$1.tmp" "$1"
+}
+
+case "${1:-} ${2:-} ${3:-}" in
+  "plugin list "*) json_plugins ;;
+  "plugin install "*)
+    id="$3"; mp="${id#*@}"
+    path="$(awk -F'\t' -v n="$mp" '$1==n{print $2}' "$S/marketplaces.txt")"
+    [ -n "$path" ] || { echo "marketplace $mp no encontrado" >&2; exit 1; }
+    grep -qxF "$id" "$S/plugins.txt" || echo "$id" >>"$S/plugins.txt"
+    c="$(cache_of "$id")"; rm -rf "$c"; mkdir -p "$c"
+    cp -R "$path/skills" "$path/bifrost" "$c/" ;;
+  "plugin uninstall "*)
+    grep -qxF "$3" "$S/plugins.txt" || { echo "no instalado" >&2; exit 1; }
+    drop_line "$S/plugins.txt" "$3"; rm -rf "$(cache_of "$3")" ;;
+  "plugin update "*) : ;;  # la versión no cambia: no recopia
+  "plugin marketplace list") json_marketplaces ;;
+  "plugin marketplace add")
+    printf 'nordic-pantheon\t%s\n' "$4" >>"$S/marketplaces.txt" ;;
+  "plugin marketplace remove")
+    grep -q "^$4"$'\t' "$S/marketplaces.txt" || { echo "no existe" >&2; exit 1; }
+    grep -v "^$4"$'\t' "$S/marketplaces.txt" >"$S/m.tmp" || true
+    mv "$S/m.tmp" "$S/marketplaces.txt" ;;
+  "plugin marketplace update") : ;;
+  "mcp get mimisbrunnr")
+    [ "${FAKE_MIMIR:-0}" = 1 ] || [ -e "$S/mimir-registered" ] \
+      || { echo "No MCP server found" >&2; exit 1; } ;;
+  "mcp add "*)
+    [ "${FAKE_MCP_ADD_FAIL:-0}" = 1 ] && { echo "claude: fallo simulado" >&2; exit 1; }
+    : >"$S/mimir-registered" ;;
+  "mcp remove "*) : ;;  # solo se registra en log.txt
+  *) echo "claude falso: comando no simulado: $*" >&2; exit 1 ;;
+esac

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "nordic-pantheon",
+  "owner": { "name": "hectorgonzalez" },
+  "plugins": [
+    {
+      "name": "nordic-pantheon",
+      "description": "Panteón nórdico: especialistas para requisitos, exploración, memoria, OpenSpec, git y docs.",
+      "source": "./"
+    }
+  ]
+}

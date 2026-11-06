@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# `git` falso para tests/install_test.sh. Registra cada llamada en
+# $FAKE_CLAUDE_STATE/tools.txt y simula clone, remote get-url origin y pull.
+#   FAKE_GIT_FAIL=1 → clone y pull fallan con código 1
+set -uo pipefail
+S="${FAKE_CLAUDE_STATE:?FAKE_CLAUDE_STATE sin definir}"
+mkdir -p "$S"
+printf 'git %s\n' "$*" >>"$S/tools.txt"
+fail() { echo "git: fallo simulado" >&2; exit 1; }
+if [ "${1:-}" = "-C" ]; then
+  dir="$2"; shift 2
+  case "$*" in
+    "remote get-url origin")
+      [ -f "$dir/.fake-origin" ] || { echo "fatal: not a git repository" >&2; exit 128; }
+      cat "$dir/.fake-origin" ;;
+    "pull --ff-only")
+      [ "${FAKE_GIT_FAIL:-0}" = 1 ] && fail
+      [ -f "$dir/.fake-origin" ] || { echo "fatal: not a git repository" >&2; exit 128; } ;;
+    *) echo "git falso: comando no simulado: -C $dir $*" >&2; exit 1 ;;
+  esac
+  exit 0
+fi
+case "${1:-}" in
+  clone)
+    [ "${FAKE_GIT_FAIL:-0}" = 1 ] && fail
+    shift
+    args=()
+    while [ $# -gt 0 ]; do
+      case "$1" in --depth) shift 2 ;; --*) shift ;; *) args+=("$1"); shift ;; esac
+    done
+    url="${args[0]}"; dest="${args[1]}"
+    mkdir -p "$dest/cmd/mimisbrunnr"
+    printf '%s\n' "$url" >"$dest/.fake-origin" ;;
+  *) echo "git falso: comando no simulado: $*" >&2; exit 1 ;;
+esac
+exit 0

@@ -1,0 +1,27 @@
+Sesión sess-b (2026-11-03) · total real: 0.50 USD
+especialista            hilo       modelo             llamadas  input  output  cache read  cache creation  total
+----------------------  ---------  -----------------  --------  -----  ------  ----------  --------------  -----
+nordic-pantheon:brokkr  principal  claude-sonnet-5-5         1      2      20           0             100    122
+TOTAL                                                        1      2      20           0             100    122
+
+Sesión sess-c (2026-11-04) · total real: 0.30 USD
+especialista  hilo       modelo           llamadas  input  output  cache read  cache creation  total
+------------  ---------  ---------------  --------  -----  ------  ----------  --------------  -----
+(sin skill)   principal  claude-opus-5-5         2      5      28           0               0     33
+TOTAL                                            2      5      28           0               0     33
+aviso: 1 respuestas sin usage final; el output puede estar por debajo del real
+output vs cost-state: 28 / 100 (claude-opus-5-5)
+
+Sesión sess-d (2026-11-04) · total real: 0.20 USD
+especialista  hilo       modelo           llamadas  input  output  cache read  cache creation  total
+------------  ---------  ---------------  --------  -----  ------  ----------  --------------  -----
+(sin skill)   principal  claude-opus-5-5         1      4      40           0               0     44
+TOTAL                                            1      4      40           0               0     44
+
+Sesión sess-a (2026-11-05) · total real: 1.25 USD
+especialista           hilo       modelo             llamadas  input  output  cache read  cache creation  total
+---------------------  ---------  -----------------  --------  -----  ------  ----------  --------------  -----
+nordic-pantheon:hugin  subagente  claude-sonnet-5-5         1     20     200        3000               0   3220
+(sin skill)            principal  claude-opus-5-5           2      8      80        2000               0   2088
+nordic-pantheon:odin   principal  claude-opus-5-5           3     16     170        1000             500   1686
+TOTAL                                                       6     44     450        6000             500   6994

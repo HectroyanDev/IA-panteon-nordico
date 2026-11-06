@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# `uv` falso para tests/install_test.sh. Registra cada llamada en
+# $FAKE_CLAUDE_STATE/tools.txt y simula `uv tool install|uninstall graphifyy`.
+#   FAKE_TOOL_FAIL=1   → install y uninstall fallan con código 1
+#   FAKE_TOOL_NOPATH=1 → install deja `graphify` en $FAKE_TOOL_HIDDEN_BIN (fuera del PATH)
+set -uo pipefail
+S="${FAKE_CLAUDE_STATE:?FAKE_CLAUDE_STATE sin definir}"
+mkdir -p "$S"
+printf 'uv %s\n' "$*" >>"$S/tools.txt"
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+dest="${FAKE_TOOL_BIN:?FAKE_TOOL_BIN sin definir}"
+[ "${FAKE_TOOL_NOPATH:-0}" = 1 ] && dest="${FAKE_TOOL_HIDDEN_BIN:?}"
+case "$*" in
+  "tool install graphifyy")
+    [ "${FAKE_TOOL_FAIL:-0}" = 1 ] && { echo "uv: fallo simulado" >&2; exit 1; }
+    mkdir -p "$dest"; cp "$here/../graphify-bin/graphify" "$dest/graphify" ;;
+  "tool uninstall graphifyy")
+    [ "${FAKE_TOOL_FAIL:-0}" = 1 ] && { echo "uv: fallo simulado" >&2; exit 1; }
+    rm -f "$dest/graphify" ;;
+esac
+exit 0

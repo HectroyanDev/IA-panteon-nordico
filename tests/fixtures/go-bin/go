@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# `go` falso para tests/install_test.sh. Registra cada llamada en
+# $FAKE_CLAUDE_STATE/tools.txt y simula `go env GOVERSION` y `go build -o`.
+#   FAKE_GO_VERSION=1.25.0 → versión que informa (por defecto 1.26.2)
+#   FAKE_GO_FAIL=1         → build falla con código 1
+set -uo pipefail
+S="${FAKE_CLAUDE_STATE:?FAKE_CLAUDE_STATE sin definir}"
+mkdir -p "$S"
+printf 'go %s\n' "$*" >>"$S/tools.txt"
+case "${1:-} ${2:-}" in
+  "env GOVERSION") printf 'go%s\n' "${FAKE_GO_VERSION:-1.26.2}" ;;
+  "build -o")
+    [ "${FAKE_GO_FAIL:-0}" = 1 ] && { echo "go: fallo simulado" >&2; exit 1; }
+    mkdir -p "$(dirname "$3")"
+    printf '#!/bin/sh\nexit 0\n' >"$3"; chmod +x "$3" ;;
+  *) echo "go falso: comando no simulado: $*" >&2; exit 1 ;;
+esac
+exit 0

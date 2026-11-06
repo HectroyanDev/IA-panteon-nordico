@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# `claude` falso para tests/evals_test.sh: registra los argumentos y sale
+# con $FAKE_EVAL_RC (0 por defecto). No hace ninguna llamada real.
+set -u
+printf '%s\n' "$*" >>"${FAKE_EVAL_LOG:?FAKE_EVAL_LOG sin definir}"
+# FAKE_EVAL_NEWREPORT=1 simula que `claude plugin eval` genera un informe nuevo.
+if [ "${FAKE_EVAL_NEWREPORT:-0}" = 1 ] && [ -n "${EVALS_RESULTS_DIR:-}" ]; then
+  sleep 0.05
+  mkdir -p "$EVALS_RESULTS_DIR/nuevo" && : >"$EVALS_RESULTS_DIR/nuevo/report.html"
+fi
+exit "${FAKE_EVAL_RC:-0}"
