@@ -1,0 +1,171 @@
+{
+  "source": "jira",
+  "ok": true,
+  "fetchedAt": "2026-11-17T07:59:00Z",
+  "data": {
+    "baseUrl": "https://casfidtech.atlassian.net",
+    "issues": [
+      {
+        "key": "ICM-1412",
+        "title": "Reintentos con backoff en webhooks de pago",
+        "status": "In Progress",
+        "statusCategory": "indeterminate",
+        "updated": "2026-11-16T12:00:00Z"
+      },
+      {
+        "key": "ICM-1405",
+        "title": "Cachear disponibilidad de sesiones",
+        "status": "Under Review",
+        "statusCategory": "indeterminate",
+        "updated": "2026-11-17T12:00:00Z"
+      },
+      {
+        "key": "ICM-1431",
+        "title": "Filtro por ciudad en el listado de planes",
+        "status": "To Do",
+        "statusCategory": "new",
+        "updated": "2026-11-13T12:00:00Z"
+      },
+      {
+        "key": "ICM-1398",
+        "title": "Exportar asistentes a CSV",
+        "status": "In Progress",
+        "statusCategory": "indeterminate",
+        "updated": "2026-11-16T12:00:00Z"
+      },
+      {
+        "key": "ICM-1377",
+        "title": "Migrar el cron de liquidaciones",
+        "status": "Under Review",
+        "statusCategory": "indeterminate",
+        "updated": "2026-11-06T12:00:00Z"
+      },
+      {
+        "key": "ICM-1420",
+        "title": "Validar aforo en reservas de grupo",
+        "status": "Under Review",
+        "statusCategory": "indeterminate",
+        "updated": "2026-11-12T12:00:00Z"
+      },
+      {
+        "key": "ICM-1440",
+        "title": "Revisar límites de rate en la API pública",
+        "status": "In Progress",
+        "statusCategory": "indeterminate",
+        "updated": "2026-11-13T12:00:00Z"
+      },
+      {
+        "key": "ICM-1436",
+        "title": "Spike: notificaciones push de recordatorio",
+        "status": "In Progress",
+        "statusCategory": "indeterminate",
+        "updated": "2026-11-09T12:00:00Z"
+      },
+      {
+        "key": "ICM-1450",
+        "title": "Borrador de la migración de índices",
+        "status": "In Progress",
+        "statusCategory": "indeterminate",
+        "updated": "2026-11-16T12:00:00Z"
+      },
+      {
+        "key": "ICM-1451",
+        "title": "Unificar formato de moneda en emails",
+        "status": "In Progress",
+        "statusCategory": "indeterminate",
+        "updated": "2026-11-16T12:00:00Z"
+      },
+      {
+        "key": "ICM-1452",
+        "title": "Unificar formato de moneda en facturas",
+        "status": "In Progress",
+        "statusCategory": "indeterminate",
+        "updated": "2026-11-16T12:00:00Z"
+      },
+      {
+        "key": "ICM-123",
+        "title": "Limpiar flags antiguos de checkout",
+        "status": "In Progress",
+        "statusCategory": "indeterminate",
+        "updated": "2026-11-13T12:00:00Z"
+      },
+      {
+        "key": "ICM-1460",
+        "title": "Alertas de stock bajo",
+        "status": "Backlog",
+        "statusCategory": "new",
+        "updated": "2026-11-12T12:00:00Z"
+      },
+      {
+        "key": "ICM-1461",
+        "title": "Reintentar sincronización de aforos",
+        "status": "In Progress",
+        "statusCategory": "indeterminate",
+        "updated": "2026-11-13T12:00:00Z"
+      },
+      {
+        "key": "ICM-1462",
+        "title": "Ajustar el timeout del proveedor de pagos",
+        "status": "In Progress",
+        "statusCategory": "indeterminate",
+        "updated": "2026-11-13T12:00:00Z"
+      },
+      {
+        "key": "ICM-1470",
+        "title": "Exportar facturas en lote",
+        "status": "Done (Merged in Dev)",
+        "statusCategory": "indeterminate",
+        "updated": "2026-11-16T12:00:00Z"
+      },
+      {
+        "key": "ICM-1471",
+        "title": "Retirar el endpoint v1 de reservas",
+        "status": "Done (Merged in Dev)",
+        "statusCategory": "indeterminate",
+        "updated": "2026-11-10T12:00:00Z"
+      },
+      {
+        "key": "ICM-1481",
+        "title": "Plantilla de recordatorio por SMS",
+        "status": "In Progress",
+        "statusCategory": "indeterminate",
+        "updated": "2026-11-16T12:00:00Z"
+      },
+      {
+        "key": "ICM-1482",
+        "title": "Texto legal en el pago express",
+        "status": "In Progress",
+        "statusCategory": "indeterminate",
+        "updated": "2026-11-16T12:00:00Z"
+      },
+      {
+        "key": "ICM-1483",
+        "title": "Etiquetas de accesibilidad en el listado",
+        "status": "In Progress",
+        "statusCategory": "indeterminate",
+        "updated": "2026-11-16T12:00:00Z"
+      },
+      {
+        "key": "ICM-1484",
+        "title": "Paginar el informe de liquidaciones",
+        "status": "In Progress",
+        "statusCategory": "indeterminate",
+        "updated": "2026-11-16T12:00:00Z"
+      },
+      {
+        "key": "ICM-1490",
+        "title": "<img src=x onerror=alert(1)> y </script><script>alert(2)</script>",
+        "status": "In Progress",
+        "statusCategory": "indeterminate",
+        "updated": "2026-11-16T12:00:00Z"
+      },
+      {
+        "key": "ICM-1480",
+        "title": "Revisión de permisos de exportación",
+        "status": "En Revisión",
+        "statusCategory": "indeterminate",
+        "updated": "2026-11-16T12:00:00Z"
+      }
+    ]
+  }
+}

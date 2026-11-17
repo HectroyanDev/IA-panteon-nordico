@@ -1,0 +1,117 @@
+{
+  "source": "bitbucket",
+  "ok": true,
+  "fetchedAt": "2026-11-17T07:59:00Z",
+  "data": {
+    "prs": [
+      {
+        "host": "bitbucket",
+        "repo": "casfidIdasfest/icm-backoffice",
+        "number": 845,
+        "url": "https://bitbucket.org/casfidIdasfest/icm-backoffice/pull-requests/845",
+        "title": "ICM-1398 exportar asistentes",
+        "branch": "feature/ICM-1398-csv",
+        "state": "merged",
+        "draft": false,
+        "approvals": 0,
+        "required": null,
+        "changesRequested": 0,
+        "unresolved": null,
+        "pending": [],
+        "lastActivity": "2026-11-16T12:00:00Z",
+        "approvedByPlatform": false
+      },
+      {
+        "host": "bitbucket",
+        "repo": "casfidIdasfest/icm-backoffice",
+        "number": 839,
+        "url": "https://bitbucket.org/casfidIdasfest/icm-backoffice/pull-requests/839",
+        "title": "Migrar cron de liquidaciones",
+        "branch": "feature/ICM-1377-cron",
+        "state": "open",
+        "draft": false,
+        "approvals": 1,
+        "required": null,
+        "changesRequested": 0,
+        "unresolved": null,
+        "pending": [
+          "acastro"
+        ],
+        "lastActivity": "2026-11-06T12:00:00Z",
+        "approvedByPlatform": true
+      },
+      {
+        "host": "bitbucket",
+        "repo": "casfidIdasfest/icm-backoffice",
+        "number": 850,
+        "url": "https://bitbucket.org/casfidIdasfest/icm-backoffice/pull-requests/850",
+        "title": "SMS de recordatorio",
+        "branch": "feature/ICM-1481-sms",
+        "state": "open",
+        "draft": false,
+        "approvals": 1,
+        "required": null,
+        "changesRequested": 0,
+        "unresolved": null,
+        "pending": [
+          "acastro"
+        ],
+        "lastActivity": "2026-11-16T12:00:00Z",
+        "approvedByPlatform": true
+      },
+      {
+        "host": "bitbucket",
+        "repo": "casfidIdasfest/icm-backoffice",
+        "number": 851,
+        "url": "https://bitbucket.org/casfidIdasfest/icm-backoffice/pull-requests/851",
+        "title": "Texto legal",
+        "branch": "feature/ICM-1482-legal",
+        "state": "open",
+        "draft": false,
+        "approvals": 1,
+        "required": null,
+        "changesRequested": 1,
+        "unresolved": null,
+        "pending": [],
+        "lastActivity": "2026-11-16T12:00:00Z",
+        "approvedByPlatform": true
+      },
+      {
+        "host": "bitbucket",
+        "repo": "casfidIdasfest/icm-backoffice",
+        "number": 852,
+        "url": "https://bitbucket.org/casfidIdasfest/icm-backoffice/pull-requests/852",
+        "title": "Etiquetas accesibles",
+        "branch": "feature/ICM-1483-a11y",
+        "state": "open",
+        "draft": false,
+        "approvals": 0,
+        "required": null,
+        "changesRequested": 0,
+        "unresolved": null,
+        "pending": [
+          "jrey"
+        ],
+        "lastActivity": "2026-11-16T12:00:00Z",
+        "approvedByPlatform": false
+      },
+      {
+        "host": "bitbucket",
+        "repo": "casfidIdasfest/icm-backoffice",
+        "number": 853,
+        "url": "https://bitbucket.org/casfidIdasfest/icm-backoffice/pull-requests/853",
+        "title": "Paginar el informe",
+        "branch": "feature/ICM-1484-paginar",
+        "state": "open",
+        "draft": false,
+        "approvals": 2,
+        "required": null,
+        "changesRequested": 0,
+        "unresolved": null,
+        "pending": [],
+        "lastActivity": "2026-11-16T12:00:00Z",
+        "approvedByPlatform": true
+      }
+    ]
+  }
+}
