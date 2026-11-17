@@ -2,8 +2,6 @@
 
 Guía de consulta para el día a día: cómo decide Bifröst, qué hace cada especialista, qué esperar en cada camino y qué normas vas a notar. Para instalar, configurar o cambiar backends, usa el [README](README.md).
 
-Para ver los flujos paso a paso (plan mode, OpenSpec, Hugin y Munin, revisión de PR con Tyr), abre el mockup [`mockups/flujo-panteon/index.html`](mockups/flujo-panteon/index.html) en el navegador. Es un solo archivo, sin servidor.
-
 ## Resumen en 30 segundos
 
 - Hablas con **Bifröst**. Él clasifica tu petición, delega en el **mínimo** de especialistas y te entrega el resultado.
