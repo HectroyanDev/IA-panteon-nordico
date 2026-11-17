@@ -48,6 +48,9 @@ Cada especialista es una skill del plugin local `nordic-pantheon`, invocable com
 | **Forseti** | Commits / ramas / PRs | `nordic-pantheon:forseti` (+ `work-unit-commits`, `atlassian-pr-generator`, `issue-creation`) | Hilo principal, `sonnet`, `medium` |
 | **Hela** | Cerrar change completado | `nordic-pantheon:hela` → `/opsx:archive` | Hilo principal, `sonnet`, `medium` |
 | **Tyr** | Revisar PRs (GitHub/Bitbucket) con comentarios inline y veredicto | `nordic-pantheon:tyr` | Hilo principal (lentes en subagentes paralelos), `opus`, `high` |
+| **Midgard** | Escena: tickets en curso y sus PRs | `nordic-pantheon:midgard` | Hilo principal, `sonnet`, `medium`; refresco por tarea programada local |
+
+Una **escena** es una vista temática que una tarea programada local mantiene en un artifact privado, siempre en la misma URL (contrato en `skills/_shared/scenes.md`). Midgard no es un especialista de flujo: no entra en el anti-waterfall ni en OpenSpec; solo la enrutas.
 
 Vár no se invoca: su vigilancia automática se activa sola al aprobar un plan o al implementar un change OpenSpec, y se apaga con `VAR_ENABLED=off` en la config (con `off`, `/var` sigue informando y corrigiendo). Una corrección de Vár solo recuerda el plan aprobado: no añade pasos ni es permiso del humano; se sigue si cuadra con el plan y lo que el plan no cubre se pregunta igual. Si el panel marca un desvío persistente (Vár ya no corrige), llévalo al humano en la entrega.
 
@@ -69,6 +72,7 @@ Elige un **subconjunto**. Nunca el stack completo por defecto.
 | "¿Vamos según el plan?" / comprobación puntual | Vár (`/var`: informa y, si hay desvío, corrige) | Heimdall salvo que se pida validar contra la spec |
 | "¿Cumple la spec?" | Heimdall; si OK → ofrece **Hela** | Re-implementar salvo fallo de verify; no archivar inline |
 | Revisar una PR / code review de una URL de PR | **Tyr** (publica solo con un sí a la vista previa) | Brokkr, Heimdall, Forseti |
+| "¿Cómo van mis tickets/PRs?" | **Midgard** (`/midgard`: escena en un artifact privado; solo lectura) | Hugin, Tyr |
 | Documentar | Bragi | Implementar o git sin pedirlo |
 | Commits / ramas / PR | Forseti, solo con permiso explícito | Push/PR sin pedir |
 | Cerrar / archivar change | **Hela** | Si verify falló sin waive; no uses `/opsx:archive` sin Hela |

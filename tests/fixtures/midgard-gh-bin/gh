@@ -1,0 +1,41 @@
+#!/usr/bin/env node
+// `gh` falso para las pruebas de collect-github.mjs: responde desde data.json y registra cada invocación.
+// MIDGARD_GH_LOG: archivo donde se añade una línea JSON por invocación. MIDGARD_GH_AUTH=0 simula falta de sesión.
+const fs = require("node:fs");
+const path = require("node:path");
+const args = process.argv.slice(2);
+if (process.env.MIDGARD_GH_LOG) fs.appendFileSync(process.env.MIDGARD_GH_LOG, `${JSON.stringify(args)}\n`);
+const data = JSON.parse(fs.readFileSync(path.join(__dirname, process.env.MIDGARD_GH_DATA || "data.json"), "utf8"));
+const out = (v) => { process.stdout.write(typeof v === "string" ? v : JSON.stringify(v)); process.exit(0); };
+const die = (msg, code = 1) => { process.stderr.write(`${msg}\n`); process.exit(code); };
+
+if (args[0] === "auth" && args[1] === "status") {
+  if (process.env.MIDGARD_GH_AUTH === "0") die("You are not logged into any GitHub hosts. To log in, run: gh auth login");
+  out("Logged in to github.com\n");
+}
+if (args[0] === "search" && args[1] === "prs") {
+  if (args.includes("--state=open")) out(data.searchOpen);
+  if (args.includes("--state=closed")) out(data.searchClosed);
+  die("estado de búsqueda no soportado por el gh falso");
+}
+if (args[0] === "pr" && args[1] === "view") {
+  const v = data.prView[args[2]];
+  if (!v) die(`no pull requests found for ${args[2]}`);
+  out(v);
+}
+if (args[0] === "api" && args[1] === "graphql") {
+  const q = args[args.indexOf("-f") + 1] || "";
+  const m = /owner: "([^"]+)", name: "([^"]+)"\) \{ pullRequest\(number: (\d+)\)/.exec(q);
+  const nodes = m && data.threads[`${m[1]}/${m[2]}#${m[3]}`];
+  if (!nodes) die("graphql: not found");
+  out({ data: { repository: { pullRequest: { reviewThreads: { nodes } } } } });
+}
+if (args[0] === "api") {
+  const p = args[1];
+  let m = /^repos\/([^/]+\/[^/]+)\/rules\/branches\/(.+)$/.exec(p);
+  if (m) { const r = data.rules[`${m[1]}:${m[2]}`]; if (r === undefined) die("gh: Resource not accessible (HTTP 403)"); out(r); }
+  m = /^repos\/([^/]+\/[^/]+)\/branches\/(.+)\/protection\/required_pull_request_reviews$/.exec(p);
+  if (m) { const r = data.protection[`${m[1]}:${m[2]}`]; if (r === undefined) die("gh: Branch not protected (HTTP 404)"); out(r); }
+  die(`ruta no soportada por el gh falso: ${p}`);
+}
+die(`invocación no soportada por el gh falso: ${args.join(" ")}`);

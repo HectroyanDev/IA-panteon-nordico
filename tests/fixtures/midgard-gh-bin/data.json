@@ -1,0 +1,48 @@
+{
+  "searchOpen": [
+    { "url": "https://github.com/feverup/payments-api/pull/2318", "number": 2318, "updatedAt": "2026-11-16T10:00:00Z", "repository": { "name": "payments-api", "nameWithOwner": "feverup/payments-api" } },
+    { "url": "https://github.com/feverup/web-checkout/pull/5120", "number": 5120, "updatedAt": "2026-11-13T10:00:00Z", "repository": { "name": "web-checkout", "nameWithOwner": "feverup/web-checkout" } }
+  ],
+  "searchClosed": [
+    { "url": "https://github.com/feverup/payments-api/pull/1999", "number": 1999, "updatedAt": "2026-11-16T10:00:00Z", "repository": { "name": "payments-api", "nameWithOwner": "feverup/payments-api" } },
+    { "url": "https://github.com/feverup/payments-api/pull/2341", "number": 2341, "updatedAt": "2026-11-13T10:00:00Z", "repository": { "name": "payments-api", "nameWithOwner": "feverup/payments-api" } }
+  ],
+  "prView": {
+    "https://github.com/feverup/payments-api/pull/1999": {
+      "number": 1999, "url": "https://github.com/feverup/payments-api/pull/1999", "title": "PR mergeada antigua con comentario reciente",
+      "headRefName": "feature/ICM-1000-antigua", "baseRefName": "main", "isDraft": false, "state": "MERGED", "mergedAt": "2026-07-01T10:00:00Z", "closedAt": "2026-07-01T10:00:00Z", "reviewDecision": "APPROVED",
+      "latestReviews": [ { "author": { "login": "lmartin" }, "state": "APPROVED" } ], "reviewRequests": [],
+      "commits": [ { "committedDate": "2026-06-30T08:00:00Z" } ], "comments": [ { "createdAt": "2026-11-16T10:00:00Z" } ], "reviews": []
+    },
+    "https://github.com/feverup/payments-api/pull/2318": {
+      "number": 2318, "url": "https://github.com/feverup/payments-api/pull/2318", "title": "ICM-1412 reintentos con backoff",
+      "headRefName": "feature/ICM-1412-backoff", "baseRefName": "main", "isDraft": false, "state": "OPEN", "mergedAt": null, "closedAt": null, "reviewDecision": "REVIEW_REQUIRED",
+      "latestReviews": [ { "author": { "login": "lmartin2" }, "state": "APPROVED" }, { "author": { "login": "jrey" }, "state": "COMMENTED" } ],
+      "reviewRequests": [ { "login": "lmartin" }, { "slug": "payments-team", "name": "Payments" } ],
+      "commits": [ { "committedDate": "2026-11-12T09:00:00Z" } ],
+      "comments": [ { "createdAt": "2026-11-16T09:30:00Z" } ],
+      "reviews": [ { "submittedAt": "2026-11-15T09:00:00Z" } ]
+    },
+    "https://github.com/feverup/web-checkout/pull/5120": {
+      "number": 5120, "url": "https://github.com/feverup/web-checkout/pull/5120", "title": "Filtro por ciudad",
+      "headRefName": "feature/ICM-1431-ciudad", "baseRefName": "develop", "isDraft": true, "state": "OPEN", "mergedAt": null, "closedAt": null, "reviewDecision": "CHANGES_REQUESTED",
+      "latestReviews": [ { "author": { "login": "jrey" }, "state": "CHANGES_REQUESTED" } ],
+      "reviewRequests": [],
+      "commits": [ { "committedDate": "2026-11-13T08:00:00Z" } ], "comments": [], "reviews": []
+    },
+    "https://github.com/feverup/payments-api/pull/2341": {
+      "number": 2341, "url": "https://github.com/feverup/payments-api/pull/2341", "title": "Sincronizar aforos (v2)",
+      "headRefName": "feature/ICM-1461-v2", "baseRefName": "main", "isDraft": false, "state": "MERGED", "mergedAt": "2026-11-13T10:00:00Z", "closedAt": "2026-11-13T10:00:00Z", "reviewDecision": "APPROVED",
+      "latestReviews": [ { "author": { "login": "lmartin" }, "state": "APPROVED" } ], "reviewRequests": [],
+      "commits": [ { "committedDate": "2026-11-12T08:00:00Z" } ], "comments": [], "reviews": [ { "submittedAt": "2026-11-13T09:00:00Z" } ]
+    }
+  },
+  "threads": {
+    "feverup/payments-api#2318": [ { "isResolved": false }, { "isResolved": false }, { "isResolved": false }, { "isResolved": true } ],
+    "feverup/web-checkout#5120": [ { "isResolved": true } ]
+  },
+  "rules": {
+    "feverup/payments-api:main": [ { "type": "deletion" }, { "type": "pull_request", "parameters": { "required_approving_review_count": 2 } } ]
+  },
+  "protection": {}
+}

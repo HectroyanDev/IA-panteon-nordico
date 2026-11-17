@@ -53,6 +53,7 @@ Bifröst es global si instalaste con `--bifrost=link` (orquesta todas las sesion
 | Forseti | Commits, ramas, PRs | Hilo principal |
 | Hela | Archiva un change completado | Hilo principal |
 | Tyr | Revisa PRs con comentarios inline | Hilo principal (lentes en subagentes paralelos) |
+| Midgard | Escena: tus tickets y PRs en un artifact privado que se refresca solo | Hilo principal |
 
 Modelos, esfuerzo y skills exactas: [tabla del README](README.md#el-panteón).
 
@@ -217,6 +218,11 @@ Reglas completas: [`skills/_shared/communication.md`](skills/_shared/communicati
 | "Extrae la validación del formulario a un módulo aparte" | Refactor sin comportamiento nuevo: plan mode. Permiso, Odín escribe el plan, apruebas, Brokkr, Heimdall; luego te ofrece commit |
 | "Quiero que los usuarios puedan exportar sus pedidos a CSV" | Comportamiento nuevo: Odín elicita; con requisitos confirmados, Skuld (`/opsx:propose`); implementar es otra decisión tuya |
 | "Revisa https://github.com/org/repo/pull/123" | Tyr: tres lentes en paralelo, vista previa de los comentarios, y solo publica con tu sí |
+| "¿Cómo van mis tickets y mis PRs?" | `/midgard`: una página privada con tus tickets de Jira en curso, sus PRs, lo que lleva días parado y lo que no cuadra entre Jira y el código |
+
+### Escenas
+
+Una escena es una página privada que una tarea programada de la app de escritorio mantiene al día, siempre en el mismo enlace. Midgard (`/midgard`) es la primera: la escribes una vez, te da el enlace y se refresca a las 08:00 y a las 14:00 de lunes a viernes con la app abierta. Solo lee de Jira, GitHub y Bitbucket y solo avisa de lo que no cuadra; nunca cambia un ticket ni una PR. Detalles, estado y cómo pausarla: [Escenas en el README](README.md#escenas).
 
 ## 11. Configuración
 
