@@ -28,6 +28,7 @@ Instala en modo `link`, con Munin sobre Mimisbrunnr y Bifröst como orquestador 
 | Forseti | Commits, ramas, PRs | `nordic-pantheon:forseti` | Hilo principal, `sonnet`, `medium` |
 | Hela | Cerrar un change completado | `nordic-pantheon:hela` | Hilo principal, `sonnet`, `medium` |
 | Tyr | Revisar PRs de GitHub y Bitbucket con comentarios inline | `nordic-pantheon:tyr` | Hilo principal (lentes en subagentes paralelos), `opus`, `high` |
+| Midgard | Escena: tus tickets de Jira en curso y sus PRs, en un artifact privado siempre en la misma URL | `nordic-pantheon:midgard` | Hilo principal, `sonnet`, `medium`; refresco por tarea programada local |
 
 Bifröst delega la exploración en `hugin` o `hugin-graphify` según `HUGIN_BACKEND` (ver "Cambiar el backend de Hugin").
 
@@ -246,6 +247,38 @@ Rigen desde la siguiente activación de plan. Un valor no válido vuelve al valo
 
 **Versión de Claude Code.** El módulo usa la API de mods (acceso anticipado, cambia entre versiones), escrita contra los tipos de la 2.1.309 que trae la app de escritorio. La CLI 2.1.301 no se ha comprobado. Las comprobaciones en vivo (carga del módulo en modo `link` y `marketplace`, señal de plan rechazado, inyección en subagentes `fork`, notificación en la app) están pendientes: ver las tareas 1.1 a 1.5 y 8.x del change `add-var-drift-watcher`. Sin el módulo (sin `hooks/` o sin esa API) `/var` solo informa y avisa de que no pudo corregir. Los hooks de `skill.prompt` (respaldo para `/opsx:apply` y `/opsx:verify` escritos a mano) no corren en un plugin instalado bajo una organización que gestiona Claude Code.
 
+## Escenas
+
+Una escena es una vista temática que una tarea programada local mantiene al día en un artifact privado, siempre en la misma URL. La primera es Midgard. El contrato común está en `skills/_shared/scenes.md` y la librería compartida en `skills/_shared/scenes/scene.mjs`.
+
+- **Estado.** `${XDG_STATE_HOME:-$HOME/.local/state}/nordic-pantheon/scenes/<escena>/`: `scene.json` (URL, tarea, horario, datos del sitio), `sources/`, `last-good/` (últimos datos válidos de cada fuente), `snapshot.json`, `index.html` y `last-run.json`. Está fuera del repo y de la config del panteón, así que `./install.sh install` y `update` no lo tocan.
+- **Refresco.** Tarea programada local de la app de escritorio, en tu máquina y con tus conectores. Solo corre con la app abierta; si estaba cerrada a la hora prevista, se ejecuta al abrirla. Las ejecuciones programadas no preguntan: si la tarea se pausa pidiendo permisos, usa el modo `auto` de Claude Code o pulsa "Run now" una vez en la tarea para aprobar sus herramientas (quedan guardadas para las siguientes ejecuciones). En la comprobación de 1.2 la tarea corrió sin pedir permisos con `defaultMode: "auto"`.
+- **Pausar o quitar.** Para pausar, desactiva la tarea "Midgard" en la lista de tareas programadas de la app. Para quitarla del todo: borra la tarea, borra el directorio de estado y, si quieres, borra el artifact desde la galería. Desinstalar el panteón no borra la tarea.
+- **Empezar de cero.** Borra el directorio de estado de la escena y vuelve a escribir `/<escena>`.
+- **Fallos.** Si una fuente falla, la página se publica igualmente con las demás, avisa de cuál y por qué, y usa los últimos datos válidos de esa fuente con su fecha. Si falla algo que impide publicar, el artifact conserva su versión anterior y la siguiente invocación manual lo cuenta. Si el artifact se borra, la tarea no crea otro: la siguiente invocación manual lo explica y pregunta.
+
+### Midgard
+
+`/midgard` publica y mantiene un artifact privado con tus tickets de Jira en curso y las PRs propias que los implementan.
+
+**Requisitos.** `gh` con sesión en `github.com`, el MCP de Atlassian conectado (Jira y Bitbucket) y la app de escritorio abierta. `node` 22 o posterior.
+
+**Qué muestra.** Seis cifras (tickets en curso, PRs abiertas, esperando revisión, cambios pedidos, estancadas, avisos Jira ↔ repo); un panel por repositorio (derivado de las PRs, sin lista que configurar) con ticket, estado de Jira, PR, revisión y días quieta; y el bloque "Sin PR". Un ticket se enlaza a una PR cuando su clave aparece como palabra completa en la rama o el título. Solo cuentan las PRs de las que eres autor: abiertas y mergeadas o cerradas sin merge en los últimos 90 días (un ticket cuya única PR se mergeó hace más tiempo aparece en "Sin PR").
+
+**Avisos Jira ↔ repo.** Solo avisan; nunca cambian el ticket. (1) El ticket no está "mergeado en dev" y tiene al menos una PR mergeada y ninguna abierta (las cerradas sin merge no cuentan). (2) Está en un estado de revisión (por defecto `Under Review` o `En Revisión`) y no tiene PR abierta. La lista está en `jiraReviewStatuses` de `scene.json`: comparación por nombre completo sin distinguir mayúsculas, clave ausente → lista por defecto, `[]` → sin aviso (2); edita ese archivo para añadir otro estado de revisión. (3) Está en una categoría To Do (To Do, Backlog) y tiene una PR abierta. Si GitHub o Bitbucket fallan sin datos previos, los avisos (1) y (2) y la pertenencia a "Sin PR" se marcan "incompleto" con el nombre de la fuente.
+
+**Estancado.** Una PR abierta o un ticket de "Sin PR" con 5 o más días laborables sin movimiento (lunes a viernes, hora de tu máquina, sin festivos). El movimiento de una PR es su último commit, revisión, comentario o cambio de estado; el de un ticket, su última actualización en Jira (un comentario cuenta).
+
+**Tickets "mergeado en dev".** En `casfidtech`, `Done (Merged in Dev)` es de categoría En curso: el ticket sigue en la página, con la etiqueta "mergeado en dev", y no da el aviso (1). Los nombres de estado que cuentan están en `jiraMergedStatuses` de `scene.json` (por defecto `["Done (Merged in Dev)"]`; comparación por nombre completo sin distinguir mayúsculas; `[]` lo desactiva). Edita ese archivo para añadir otro estado equivalente.
+
+**Bitbucket.** El workspace está en `bitbucketWorkspace` de `scene.json` (hoy `casfidIdasfest`, con "I" mayúscula); las PRs de otros workspaces no aparecen. Bitbucket no da las aprobaciones requeridas ni los hilos sin resolver: la revisión muestra `N aprob.` sin denominador y sin dato de comentarios. Una PR de Bitbucket cuenta como "Lista para merge" con al menos una aprobación y ningún cambio pedido, aunque queden revisores pendientes.
+
+**GitHub.** Una PR de GitHub cuenta como aprobada con el veredicto de la plataforma (`reviewDecision` `APPROVED`); si no trae veredicto (repo sin revisiones obligatorias), basta una aprobación. Con `REVIEW_REQUIRED` o `CHANGES_REQUESTED` no está aprobada.
+
+**Horario.** Por defecto 08:00 y 14:00 de lunes a viernes (`0 8,14 * * 1-5`, hora local). Cámbialo con `/midgard horario "<cron>"`; solo se admiten expresiones `M H[,H…] * * D[-D]` (minuto fijo, lista de horas, días). La página muestra la hora de la última actualización y la próxima prevista; si pasan más de 2 horas de la próxima sin refresco, avisa de que la tarea puede no estar corriendo.
+
+**Primera vez.** `/midgard` sin estado pregunta el sitio de Jira (si hay varios) y el workspace de Bitbucket, publica el artifact, guarda su URL y crea la tarea "Midgard". Después, `/midgard` refresca; `/midgard refresh` es el modo que usa la tarea.
+
 ## Evals
 
 `evals/` es una suite para `claude plugin eval` que comprueba reglas de comportamiento tras cambiar `bifrost/CLAUDE.md` o una skill. No mide la calidad del texto ni del código.
@@ -332,11 +365,16 @@ Nuevo especialista Vár (`nordic-pantheon:var` y el módulo de hooks `hooks/var.
 
 `install.sh` puede instalar el MCP Mimisbrunnr en la CLI (clona, compila y registra) con `--munin=mimir`: nuevo flag `--mimir=install|skip` y pregunta interactiva. Cambia el comportamiento por defecto: con `--munin=mimir` y el MCP sin registrar, `install --yes` ahora clona, compila y sobrescribe `~/.local/bin/mimisbrunnr` y registra el MCP en la CLI. Para el comportamiento anterior (solo avisar), usa `--mimir=skip`. Ver "Instalar Mimisbrunnr".
 
+## Cambios en 1.7.0
+
+Nueva escena Midgard (`nordic-pantheon:midgard`): artifact privado con tus tickets de Jira en curso y sus PRs de GitHub y Bitbucket, refrescado por una tarea programada local; contrato común de escenas en `skills/_shared/scenes.md`. Sin cambios incompatibles. Ver "Escenas".
+
 ## Pruebas
 
 ```bash
 bash tests/install_test.sh
 bash tests/evals_test.sh
+node --test tests/midgard/*.test.mjs
 claude plugin validate .
 claude plugin test .
 tsc -p .
@@ -345,5 +383,7 @@ tsc -p .
 `claude plugin test .` ejecuta `hooks/var.test.tsx` (reloj y `model.complete` simulados, sin llamadas reales). `tsc -p .` comprueba los tipos del módulo con los tipos que el motor deja en `.claude-plugin/types/` al cargar el mod (ignorados por git).
 
 `install_test.sh` ejecuta el instalador con `HOME` temporal y `claude`, `uv`, `pipx`, `graphify`, `git` y `go` falsos, con un `PATH` sin los reales; no toca tu instalación.
+
+`node --test tests/midgard/*.test.mjs` prueba las escenas (librería compartida, reglas, construcción de la página y recogida de GitHub con un `gh` falso en `tests/fixtures/midgard-gh-bin/`) sin red. Node 22 no recorre directorios: usa el patrón de archivos y no `tests/midgard/`.
 
 `evals_test.sh` ejecuta `tests/evals.sh` con un `claude` falso (`tests/fixtures/evals-bin/claude`): comprueba flags, `--no-publish`, el tope de 2 USD y los códigos de salida sin llamadas reales ni coste.
