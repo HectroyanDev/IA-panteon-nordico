@@ -53,7 +53,6 @@ header.top h1 { font-family: var(--f-display); font-size: 30px; margin: 0; lette
 .chip.ok { background: var(--ok-bg); color: var(--ok); } .chip.crit { background: var(--crit-bg); color: var(--crit); }
 .chip.info { background: var(--info-bg); color: var(--info); }
 .chip.neutral { background: transparent; color: var(--muted); border: 1px solid var(--line); }
-.chip.dev { background: transparent; color: var(--ink); border: 1px dashed var(--muted); font-family: var(--f-mono); font-size: 11px; }
 .chip.incomplete { background: transparent; color: var(--muted); border: 1px dotted var(--muted); font-family: var(--f-mono); font-size: 11px; }
 .host { font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
 .alert { display: flex; gap: 8px; align-items: flex-start; background: var(--warn-bg); color: var(--ink); border-left: 3px solid var(--warn); padding: 6px 10px; font-size: 13px; border-radius: 0 4px 4px 0; }
@@ -77,6 +76,26 @@ table.ops tr.stale td:first-child { box-shadow: inset 3px 0 0 var(--crit); }
 .ttl { margin-top: 3px; overflow-wrap: anywhere; }
 .rev { display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
 .rev .who { color: var(--muted); font-family: var(--f-mono); font-size: 11px; }
+.warn-tag { font-family: var(--f-mono); font-size: 11px; color: var(--warn); }
+details.merged { grid-column: 1 / -1; }
+details.merged > summary { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; align-items: center; padding: 9px 14px; background: var(--console-head); border-radius: 8px; cursor: pointer; list-style: none; }
+details.merged > summary::-webkit-details-marker { display: none; }
+details.merged[open] > summary { border-bottom: 1px solid var(--line); border-radius: 8px 8px 0 0; }
+details.merged > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+details.merged .sum-title { display: flex; align-items: center; gap: 8px; font-family: var(--f-mono); font-size: 13px; font-weight: 600; }
+details.merged .sum-title::before { content: ""; width: 6px; height: 6px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); transition: transform .15s; }
+details.merged[open] .sum-title::before { transform: rotate(45deg); }
+details.merged .sum-info { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+ul.mlist { list-style: none; margin: 0; padding: 0; }
+ul.mlist li { padding: 8px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 4px; min-width: 0; }
+ul.mlist li:last-child { border-bottom: 0; }
+ul.mlist li.stale { box-shadow: inset 3px 0 0 var(--crit); }
+.m-main { display: flex; flex-wrap: wrap; gap: 2px 12px; align-items: baseline; min-width: 0; }
+.m-main .k { font-family: var(--f-mono); font-size: 12px; white-space: nowrap; }
+.m-main .ttl { margin: 0; flex: 1 1 220px; min-width: 0; }
+.m-repos { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; font-size: 12px; }
+.m-repo { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.m-none { color: var(--muted); }
 .empty { background: var(--console); border: 1px dashed var(--line); border-radius: 8px; padding: 28px 16px; text-align: center; color: var(--muted); }
 </style>
 
@@ -152,19 +171,21 @@ table.ops tr.stale td:first-child { box-shadow: inset 3px 0 0 var(--crit); }
   var TONE = { merged: "ok", declined: "neutral", draft: "neutral", changes: "crit", ready: "ok", waiting: "info" };
   function jiraCell(r) {
     var h = '<div class="jira">' + chip(r.status, "neutral");
-    if (r.mergedInDev) h += '<span class="chip dev">mergeado en dev</span>';
     (r.incomplete || []).forEach(function (src) { h += '<span class="chip incomplete">incompleto: ' + esc(src) + "</span>"; });
     return h + "</div>";
   }
   function days(r, stale) {
     return esc(r.days) + " d" + (stale ? ' <span class="stale-tag" title="Estancado" aria-label="estancado">●</span>' : "");
   }
-  function alertRow(r, cols) {
+  function alertBox(r) {
     var w = r.warning;
     if (!w) return "";
     var links = " " + link(w.ticketUrl, "Abrir " + r.key);
     (w.prs || []).forEach(function (p) { links += " · " + link(p.url, "#" + p.number); });
-    return '<tr class="alertrow"><td colspan="' + cols + '"><div class="alert"><span class="bang" aria-hidden="true">!</span><span>' + esc(w.text) + links + "</span></div></td></tr>";
+    return '<div class="alert"><span class="bang" aria-hidden="true">!</span><span>' + esc(w.text) + links + "</span></div>";
+  }
+  function alertRow(r, cols) {
+    return r.warning ? '<tr class="alertrow"><td colspan="' + cols + '">' + alertBox(r) + "</td></tr>" : "";
   }
   function prRow(r) {
     var p = r.pr;
@@ -190,13 +211,36 @@ table.ops tr.stale td:first-child { box-shadow: inset 3px 0 0 var(--crit); }
       rows.map(noPrRow).join("") + "</tbody></table></div></section>";
   }
 
+  // Panel plegable "Mergeados en dev": lista compacta, sin detalle de revisión; las marcas de estancado y los avisos explican las cifras.
+  function staleMark(d) { return ' <span class="stale-tag" title="Estancado" aria-label="estancado">● ' + esc(d) + " d</span>"; }
+  function mergedRow(r) {
+    var h = '<li class="' + (r.stale ? "stale" : "") + '"><div class="m-main"><span class="k">' + link(r.ticketUrl, r.key) + '</span><span class="ttl">' + esc(r.title) + "</span></div>";
+    var parts = r.repos.map(function (rp) {
+      return '<span class="m-repo"><span class="host">' + esc(rp.hostLabel) + " · " + esc(rp.repo) + "</span>" + rp.prs.map(function (p) {
+        return "<span>" + link(p.url, "#" + p.number) + " " + chip(p.statusLabel, TONE[p.statusCode] || "neutral") + (p.stale ? staleMark(p.days) : "") + "</span>";
+      }).join(" ") + "</span>";
+    });
+    if (!r.repos.length) parts.push('<span class="m-none">sin PR enlazada' + (r.stale ? staleMark(r.days) : "") + "</span>");
+    (r.incomplete || []).forEach(function (src) { parts.push('<span class="chip incomplete">incompleto: ' + esc(src) + "</span>"); });
+    return h + '<div class="m-repos">' + parts.join("") + "</div>" + alertBox(r) + "</li>";
+  }
+  function mergedPanel(rows, sum) {
+    var info = "";
+    if (sum.stale > 0) info += '<span class="stale-tag">' + esc(sum.stale) + (sum.stale === 1 ? " estancado" : " estancados") + "</span>";
+    if (sum.warned > 0) info += '<span class="warn-tag">' + esc(sum.warned) + (sum.warned === 1 ? " aviso" : " avisos") + "</span>";
+    info += '<span class="host">' + esc(sum.total) + (sum.total === 1 ? " ticket" : " tickets") + "</span>";
+    return '<details class="panel merged"><summary><span class="sum-title">Mergeados en dev</span><span class="sum-info">' + info + "</span></summary>" +
+      '<ul class="mlist">' + rows.map(mergedRow).join("") + "</ul></details>";
+  }
+
   var body = "";
   if (snap.jiraDown) {
     body = '<div class="empty">Sin datos de Jira: no se pueden mostrar los tickets en curso.</div>';
   } else if (snap.empty) {
     body = '<div class="empty">No hay tickets en curso.</div>';
   } else {
-    body = '<div class="panels">' + snap.panels.map(panel).join("") + (snap.noPr.length ? noPrPanel(snap.noPr) : "") + "</div>";
+    body = '<div class="panels">' + snap.panels.map(panel).join("") + (snap.noPr.length ? noPrPanel(snap.noPr) : "") +
+      (snap.mergedDev && snap.mergedDev.length ? mergedPanel(snap.mergedDev, snap.mergedDevSummary) : "") + "</div>";
   }
   document.getElementById("body").innerHTML = body;
 })();

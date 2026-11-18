@@ -90,14 +90,40 @@ for (const [label, tpl] of templates) {
     assert.equal(embedded(run({ stateDir: dir, next: given }, tpl).html).nextRun, given.toISOString());
   });
 
-  test(`${label}: jiraMergedStatuses de scene.json (ausente → por defecto; [] → sin etiqueta y con aviso 1)`, () => {
+  test(`${label}: jiraMergedStatuses de scene.json (ausente → por defecto; [] → panel y Sin PR con aviso 1)`, () => {
     const { jiraMergedStatuses, ...withoutKey } = SCENE;
     const def = embedded(run({ stateDir: stateWith({ scene: withoutKey }) }, tpl).html);
-    const r1470 = rows(def).find((r) => r.key === "ICM-1470");
-    assert.equal(r1470.mergedInDev, true); assert.equal(r1470.warning, null);
+    assert.deepEqual(def.mergedDev.map((r) => r.key).sort(), ["ICM-1470", "ICM-1471"]);
+    for (const k of ["ICM-1470", "ICM-1471"]) {
+      assert.equal(rows(def).some((r) => r.key === k), false); assert.equal(def.noPr.some((r) => r.key === k), false);
+    }
+    assert.equal(def.mergedDev.find((r) => r.key === "ICM-1470").warning, null);
     const empty = embedded(run({ stateDir: stateWith({ scene: { ...SCENE, jiraMergedStatuses: [] } }) }, tpl).html);
-    const e1470 = rows(empty).find((r) => r.key === "ICM-1470");
-    assert.equal(e1470.mergedInDev, false); assert.equal(e1470.warning.code, 1);
+    assert.deepEqual(empty.mergedDev, []); assert.equal(empty.mergedDevSummary.total, 0);
+    assert.equal(rows(empty).find((r) => r.key === "ICM-1470").warning.code, 1);
+    assert.ok(empty.noPr.some((r) => r.key === "ICM-1471"));
+  });
+
+  test(`${label}: HTML del panel Mergeados en dev (solo con la plantilla real)`, { skip: tpl !== DEFAULT_TEMPLATE }, () => {
+    const withPanel = run({ stateDir: stateWith({ scene: SCENE }) }, tpl);
+    const snap = embedded(withPanel.html);
+    const tplHtml = fs.readFileSync(tpl, "utf8");
+    assert.match(tplHtml, /<details class="panel merged">/);          // plegado: sin atributo open
+    assert.equal(/<details[^>]*\sopen/.test(tplHtml), false);
+    assert.match(tplHtml, /Mergeados en dev<\/span>/);
+    assert.equal(/mergeado en dev/.test(tplHtml), false);            // sin etiqueta de fila
+    assert.equal(snap.mergedDevSummary.total, 2);
+    const without = run({ stateDir: stateWith({ scene: { ...SCENE, jiraMergedStatuses: [] } }) }, tpl);
+    assert.equal(embedded(without.html).mergedDev.length, 0);
+  });
+
+  test(`${label}: las cifras del fixture son las mismas con y sin panel de mergeados en dev`, () => {
+    const withPanel = embedded(run({ stateDir: stateWith({ scene: SCENE }) }, tpl).html);
+    const without = embedded(run({ stateDir: stateWith({ scene: { ...SCENE, jiraMergedStatuses: [] } }) }, tpl).html);
+    // Sin la lista, ICM-1470 gana el aviso 1: es lo único que cambia.
+    assert.deepEqual({ ...withPanel.kpis, warned: 0 }, { ...without.kpis, warned: 0 });
+    assert.equal(withPanel.kpis.warned + 1, without.kpis.warned);
+    assert.deepEqual(withPanel.mergedDevSummary, { total: 2, stale: 1, warned: 0 });
   });
 
   test(`${label}: jiraReviewStatuses de scene.json (ausente → por defecto; [] → sin aviso 2)`, () => {
@@ -131,4 +157,10 @@ test("CLI: escribe snapshot e index.html y resume por la salida estándar", () =
 test("CLI: argumentos no válidos fallan con código distinto de 0", () => {
   const script = path.join(here, "..", "..", "skills", "midgard", "scripts", "build.mjs");
   assert.throws(() => execFileSync("node", [script], { stdio: "pipe" }));
+});
+
+// Fijadas con el código anterior al panel "Mergeados en dev" (change midgard-merged-dev-panel, T-1): el panel no cambia ninguna cifra.
+test("cifras del fixture: los tickets mergeados en dev (ICM-1470, ICM-1471) siguen contando", () => {
+  const snap = embedded(run({ stateDir: stateWith({ scene: SCENE }) }, MIN_TEMPLATE).html);
+  assert.deepEqual(snap.kpis, { inProgress: 23, openPrs: 14, waiting: 6, changes: 2, stale: 3, warned: 6 });
 });
