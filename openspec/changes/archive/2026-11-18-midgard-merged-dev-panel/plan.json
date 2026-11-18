@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "change": "midgard-merged-dev-panel",
+  "groups": [
+    { "id": 1, "title": "Modelo de vista" },
+    { "id": 2, "title": "Plantilla" },
+    { "id": 3, "title": "Documentación" }
+  ],
+  "tasks": [
+    {
+      "id": "T-1",
+      "group": 1,
+      "title": "Antes de tocar `rules.mjs`, añadir a `tests/midgard/build.test.mjs` una prueba que fija las seis cifras (`kpis`) del fixture con `SCENE` calculadas con el código actual (design D1)",
+      "deps": [],
+      "reqs": ["midgard-scene/REQ-018"],
+      "verify": "`node --test tests/midgard/*.test.mjs` en verde con el código actual y la prueba nueva"
+    },
+    {
+      "id": "T-2",
+      "group": 1,
+      "title": "En `buildView` sacar los tickets mergeados en dev de `panels` y `noPr` al bloque `mergedDev` (repos y PRs con estado y días, `days`, `stale`, `warning`, `incomplete`) y añadir `mergedDevSummary` (provisional, D3); cifras con el mismo valor, contando los tickets sin PR de los dos bloques; quitar `mergedInDev` de las filas de paneles y \"Sin PR\". Reescribir y ampliar las pruebas de mergeado en dev de `tests/midgard/rules.test.mjs` según design D4",
+      "deps": ["T-1"],
+      "reqs": [
+        "midgard-scene/REQ-002",
+        "midgard-scene/REQ-003",
+        "midgard-scene/REQ-006",
+        "midgard-scene/REQ-007",
+        "midgard-scene/REQ-013",
+        "midgard-scene/REQ-016",
+        "midgard-scene/REQ-018",
+        "midgard-scene/REQ-021",
+        "midgard-scene/REQ-022"
+      ],
+      "verify": "`node --test tests/midgard/rules.test.mjs` en verde, con los casos de design D4"
+    },
+    {
+      "id": "T-3",
+      "group": 1,
+      "title": "Actualizar `tests/midgard/build.test.mjs`: `ICM-1470` e `ICM-1471` en `mergedDev` y ausentes de `panels` y `noPr`, `jiraMergedStatuses: []` los devuelve a panel y \"Sin PR\" con aviso (1) en `ICM-1470`, y las cifras siguen iguales a las fijadas en T-1",
+      "deps": ["T-1", "T-2"],
+      "reqs": ["midgard-scene/REQ-003", "midgard-scene/REQ-007", "midgard-scene/REQ-016", "midgard-scene/REQ-018"],
+      "verify": "`node --test tests/midgard/*.test.mjs` en verde; la prueba de T-1 no se ha modificado"
+    },
+    {
+      "id": "T-4",
+      "group": 2,
+      "title": "En `skills/midgard/assets/template.html`, cargando antes la skill `artifact-design`: panel `<details>` \"Mergeados en dev\" sin `open`, último de `.panels`, con `<summary>` (total y, provisional D3, estancados y avisos), lista compacta (clave, título, repositorios, enlaces `#N` con estado, marca de estancado, aviso ámbar, \"incompleto\") y foco visible; quitar `chip.dev` de `jiraCell` y su CSS. Añadir a `build.test.mjs`, con la plantilla real, las comprobaciones de HTML de design D4",
+      "deps": ["T-2"],
+      "reqs": ["midgard-scene/REQ-020", "midgard-scene/REQ-021", "midgard-scene/REQ-022"],
+      "verify": "`node --test tests/midgard/*.test.mjs` en verde, con `<details` sin `open`, `<summary>` \"Mergeados en dev\" y sin la etiqueta \"mergeado en dev\" en filas"
+    },
+    {
+      "id": "T-5",
+      "group": 2,
+      "title": "Comprobación visual de la plantilla con los fixtures (`node skills/midgard/scripts/build.mjs --state-dir <scratch> --now 2026-11-17T08:00:00Z`) en el panel del navegador: claro, oscuro con `data-theme=\"dark\"`, 375 px con el panel desplegado y teclado (Tab hasta el `<summary>`, Enter y Espacio); capturas en el scratchpad",
+      "deps": ["T-4"],
+      "reqs": ["midgard-scene/REQ-020", "midgard-scene/REQ-021"],
+      "verify": "Capturas en claro, oscuro y 375 px; `document.documentElement.scrollWidth <= innerWidth` con el panel desplegado; el `<summary>` recibe el foco visible y Enter y Espacio alternan `open`"
+    },
+    {
+      "id": "T-6",
+      "group": 3,
+      "title": "Actualizar solo la subsección \"### Midgard\" de `README.md` (\"Qué muestra\", \"Estancado\", \"Tickets 'mergeado en dev'\") y la nota de `status` de `skills/midgard/references/collect.md` según design D5",
+      "deps": ["T-4"],
+      "reqs": [],
+      "verify": "`grep -n 'mergeado en dev\\|Mergeados en dev' README.md skills/midgard/references/collect.md` describe el panel plegado, que las cifras lo cuentan y que no da el aviso (1); ningún texto habla ya de la etiqueta en las filas"
+    }
+  ],
+  "follow_up": [
+    "Confirmar con el humano la opción de D3 (motivos visibles); si no es la provisional, Skuld ajusta REQ-022, D3 y T-2/T-4 antes de aplicar",
+    "Validar con Heimdall y archivar con Hela",
+    "Refresco real con `/midgard` para ver el panel con datos de Jira"
+  ]
+}

@@ -103,6 +103,12 @@ export function coherenceWarning(ticket, prs, incompleteHosts = [], reviewStatus
   return { warning: null, incomplete: [] };
 }
 
+function stalePrUrls(rows) {
+  const urls = new Set();
+  for (const r of rows) for (const repo of r.repos) for (const p of repo.prs) if (p.stale) urls.add(p.url);
+  return urls.size;
+}
+
 const SOURCE_LABELS = { jira: "Jira", github: "GitHub", bitbucket: "Bitbucket" };
 const HOST_LABELS = { github: "GitHub", bitbucket: "Bitbucket" };
 
@@ -142,7 +148,7 @@ export function buildView(sources, now, nextRun, { mergedStatuses, reviewStatuse
     const days = businessDaysBetween(pr.lastActivity, now);
     return {
       key: t.key, ticketUrl: baseUrl ? `${baseUrl}/browse/${t.key}` : null, title: t.title,
-      status: t.status, mergedInDev: t.mergedInDev,
+      status: t.status,
       pr: {
         number: pr.number, url: pr.url, title: pr.title, branch: pr.branch, state: pr.state, draft: pr.draft,
         statusCode: st.code, statusLabel: st.label, review: reviewSummary(pr), days,
@@ -157,16 +163,44 @@ export function buildView(sources, now, nextRun, { mergedStatuses, reviewStatuse
 
   const panelsMap = new Map();
   const noPrRows = [];
+  const mergedDevRows = [];
   const warnedKeys = new Set();
+  let mergedDevStaleNoPr = 0;
   for (const t of tickets) {
     const prs = [...linked.get(t.key)].sort((a, b) => a.number - b.number);
     const warn = coherenceWarning(t, prs, incompleteHosts, review);
     if (warn.warning) warnedKeys.add(t.key);
+    if (t.mergedInDev) {
+      // Los tickets mergeados en dev no entran en `panels` ni en `noPr`: van a su propio bloque, una fila por ticket.
+      const ticketUrl = baseUrl ? `${baseUrl}/browse/${t.key}` : null;
+      const byRepo = new Map();
+      for (const pr of prs) {
+        const pk = `${pr.host}:${pr.repo}`;
+        if (!byRepo.has(pk)) byRepo.set(pk, { host: pr.host, hostLabel: HOST_LABELS[pr.host], repo: pr.repo, prs: [] });
+        const st = prStatus(pr);
+        const days = businessDaysBetween(pr.lastActivity, now);
+        byRepo.get(pk).prs.push({
+          number: pr.number, url: pr.url, state: pr.state, statusCode: st.code, statusLabel: st.label, days,
+          stale: isStale({ kind: "pr", state: pr.state, days }),
+        });
+      }
+      const ticketDays = prs.length === 0 ? businessDaysBetween(t.updated, now) : null;
+      const noPrStale = prs.length === 0 && isStale({ kind: "ticket", days: ticketDays });
+      if (noPrStale) mergedDevStaleNoPr++;
+      const repos = [...byRepo.values()];
+      mergedDevRows.push({
+        key: t.key, ticketUrl, title: t.title, status: t.status, repos, days: ticketDays,
+        stale: noPrStale || repos.some((r) => r.prs.some((p) => p.stale)),
+        warning: warn.warning ? { ...warn.warning, ticketUrl, prs: linkedPrLinks(t) } : null,
+        incomplete: prs.length === 0 ? [...incompleteHosts] : warn.incomplete,
+      });
+      continue;
+    }
     if (prs.length === 0) {
       const days = businessDaysBetween(t.updated, now);
       noPrRows.push({
         key: t.key, ticketUrl: baseUrl ? `${baseUrl}/browse/${t.key}` : null, title: t.title, status: t.status,
-        mergedInDev: t.mergedInDev, pr: null, days, stale: isStale({ kind: "ticket", days }),
+        pr: null, days, stale: isStale({ kind: "ticket", days }),
         warning: warn.warning ? { ...warn.warning, ticketUrl: baseUrl ? `${baseUrl}/browse/${t.key}` : null, prs: [] } : null,
         incomplete: incompleteHosts.length > 0 ? [...incompleteHosts] : [],
       });
@@ -184,6 +218,10 @@ export function buildView(sources, now, nextRun, { mergedStatuses, reviewStatuse
     }
   }
   const panels = [...panelsMap.values()].sort((a, b) => b.rows.length - a.rows.length || a.repo.localeCompare(b.repo));
+  // Repositorios de las filas mergeadas en dev: primero los que tienen panel, en su orden, y luego el resto por nombre.
+  const panelIdx = new Map(panels.map((p, i) => [`${p.host}:${p.repo}`, i]));
+  const rank = (r) => panelIdx.get(`${r.host}:${r.repo}`) ?? Infinity;
+  for (const row of mergedDevRows) row.repos.sort((a, b) => (rank(a) === rank(b) ? a.repo.localeCompare(b.repo) : rank(a) - rank(b)));
 
   // Cifras: PRs únicas por URL.
   const uniq = new Map();
@@ -191,7 +229,7 @@ export function buildView(sources, now, nextRun, { mergedStatuses, reviewStatuse
   const open = [...uniq.values()].filter((p) => p.state === "open");
   const count = (code) => open.filter((p) => prStatus(p).code === code).length;
   const stalePrs = open.filter((p) => isStale({ kind: "pr", state: "open", days: businessDaysBetween(p.lastActivity, now) })).length;
-  const staleNoPr = noPrRows.filter((r) => r.stale).length;
+  const staleNoPr = noPrRows.filter((r) => r.stale).length + mergedDevStaleNoPr;
   const kpis = jiraDown ? null : {
     inProgress: tickets.length, openPrs: open.length, waiting: count("waiting"), changes: count("changes"),
     stale: stalePrs + staleNoPr, warned: warnedKeys.size,
@@ -208,5 +246,12 @@ export function buildView(sources, now, nextRun, { mergedStatuses, reviewStatuse
     kpis,
     panels,
     noPr: noPrRows,
+    mergedDev: mergedDevRows,
+    mergedDevSummary: {
+      total: mergedDevRows.length,
+      // Unidades de la cifra de estancadas: PRs abiertas estancadas únicas por URL y tickets sin PR estancados.
+      stale: stalePrUrls(mergedDevRows) + mergedDevStaleNoPr,
+      warned: mergedDevRows.filter((r) => r.warning).length,
+    },
   };
 }

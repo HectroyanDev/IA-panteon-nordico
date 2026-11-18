@@ -49,7 +49,7 @@ Las herramientas MCP de Atlassian llegan como herramientas diferidas: se cargan 
 | --- | --- |
 | `key` | `key` |
 | `title` | `fields.summary` |
-| `status` | `fields.status.name`, tal como llega (de él sale la etiqueta "mergeado en dev") |
+| `status` | `fields.status.name`, tal como llega (con `jiraMergedStatuses` decide si el ticket va al panel "Mergeados en dev") |
 | `statusCategory` | `fields.status.statusCategory.key` (`new`, `indeterminate` o `done`) |
 | `updated` | `fields.updated`, tal cual (`2026-11-17T14:28:55.046+0100` vale) |
 

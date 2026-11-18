@@ -163,24 +163,87 @@ test("aviso con fuente caída sin datos: 1 y 2 pasan a incompleto, 3 se muestra 
 });
 
 // ---- buildView ----
-test("buildView: mergeado en dev con PR mergeada → etiqueta, sin aviso, cuenta en curso y no en avisos", () => {
-  const issues = [ticket({ key: "ICM-9", status: "Done (Merged in Dev)" })];
-  const v = view(issues, [pr({ branch: "ICM-9", state: "merged" })]);
-  const r = rowsOf(v)[0];
-  assert.equal(r.mergedInDev, true); assert.equal(r.warning, null);
+const MD = "Done (Merged in Dev)";
+test("buildView: mergeado en dev con PR mergeada → solo en mergedDev, sin aviso, cuenta en curso y no en avisos", () => {
+  const v = view([ticket({ key: "ICM-9", status: MD })], [pr({ branch: "ICM-9", state: "merged" })]);
+  assert.equal(rowsOf(v).length, 0); assert.equal(v.panels.length, 0); assert.equal(v.noPr.length, 0);
+  assert.equal(v.mergedDev.length, 1);
+  const r = v.mergedDev[0];
+  assert.equal(r.key, "ICM-9"); assert.equal(r.ticketUrl, "https://j.atlassian.net/browse/ICM-9"); assert.equal(r.warning, null);
+  assert.equal(r.days, null); assert.equal(r.stale, false); assert.deepEqual(r.incomplete, []);
+  assert.deepEqual(r.repos, [{ host: "github", hostLabel: "GitHub", repo: "o/r", prs: [
+    { number: 1, url: "https://github.com/o/r/pull/1", state: "merged", statusCode: "merged", statusLabel: "Mergeada", days: 1, stale: false }] }]);
+  assert.deepEqual(v.mergedDevSummary, { total: 1, stale: 0, warned: 0 });
   assert.equal(v.kpis.inProgress, 1); assert.equal(v.kpis.warned, 0);
+  assert.ok(!("mergedInDev" in v.mergedDev[0]));
 });
-test("buildView: mismo ticket con mergedStatuses [] → aviso 1 y sin etiqueta", () => {
-  const v = view([ticket({ key: "ICM-9", status: "Done (Merged in Dev)" })], [pr({ branch: "ICM-9", state: "merged" })], [], { mergedStatuses: [] });
+test("buildView: mismo ticket con mergedStatuses [] → mergedDev vacío, panel normal y aviso 1", () => {
+  const v = view([ticket({ key: "ICM-9", status: MD })], [pr({ branch: "ICM-9", state: "merged" })], [], { mergedStatuses: [] });
+  assert.deepEqual(v.mergedDev, []); assert.deepEqual(v.mergedDevSummary, { total: 0, stale: 0, warned: 0 });
   const r = rowsOf(v)[0];
-  assert.equal(r.mergedInDev, false); assert.equal(r.warning.code, 1);
+  assert.ok(!("mergedInDev" in r)); assert.equal(r.warning.code, 1);
   assert.equal(v.kpis.warned, 1);
 });
-test("buildView: mergeado en dev sin PR y con 5 días → Sin PR, etiqueta y estancado", () => {
-  const v = view([ticket({ key: "ICM-8", status: "Done (Merged in Dev)", updated: "2026-11-10T12:00:00Z" })]);
-  assert.equal(v.noPr.length, 1);
-  assert.equal(v.noPr[0].mergedInDev, true); assert.equal(v.noPr[0].stale, true); assert.equal(v.noPr[0].days, 5);
-  assert.equal(v.kpis.stale, 1);
+test("buildView: mergeado en dev sin PR y con 5 días → mergedDev (no Sin PR), estancado y cuenta en estancadas", () => {
+  const v = view([ticket({ key: "ICM-8", status: MD, updated: "2026-11-10T12:00:00Z" })]);
+  assert.equal(v.noPr.length, 0);
+  assert.equal(v.mergedDev.length, 1);
+  const r = v.mergedDev[0];
+  assert.deepEqual(r.repos, []); assert.equal(r.days, 5); assert.equal(r.stale, true);
+  assert.deepEqual(v.mergedDevSummary, { total: 1, stale: 1, warned: 0 });
+  assert.equal(v.kpis.stale, 1); assert.equal(v.kpis.inProgress, 1);
+});
+test("buildView: repositorio solo con PRs de tickets mergeados en dev → sin panel", () => {
+  const v = view([ticket({ key: "ICM-1", status: MD })], [pr({ repo: "o/facturas", url: "https://github.com/o/facturas/pull/1", branch: "ICM-1", state: "merged" })]);
+  assert.deepEqual(v.panels, []);
+  assert.equal(v.mergedDev[0].repos[0].repo, "o/facturas");
+});
+test("buildView: PR abierta compartida con un ticket no mergeado → panel por ese ticket, enlazada en mergedDev y contada una vez", () => {
+  const v = view([ticket({ key: "ICM-1" }), ticket({ key: "ICM-2", status: MD })], [pr({ title: "ICM-1 ICM-2 juntos" })]);
+  assert.deepEqual(rowsOf(v).map((r) => r.key), ["ICM-1"]);
+  assert.equal(v.mergedDev[0].key, "ICM-2");
+  assert.equal(v.mergedDev[0].repos[0].prs[0].url, "https://github.com/o/r/pull/1");
+  assert.equal(v.kpis.openPrs, 1); assert.equal(v.kpis.waiting, 1);
+});
+test("buildView: mergeado en dev con PR abierta estancada → stale, cifras y resumen", () => {
+  const v = view([ticket({ key: "ICM-3", status: MD })], [pr({ branch: "ICM-3", lastActivity: "2026-11-09T12:00:00Z" })]);
+  assert.equal(rowsOf(v).length, 0);
+  const r = v.mergedDev[0];
+  assert.equal(r.stale, true); assert.equal(r.days, null);
+  const p = r.repos[0].prs[0];
+  assert.equal(p.statusLabel, "Esperando revisión"); assert.equal(p.stale, true); assert.equal(p.days, 6);
+  assert.deepEqual(v.mergedDevSummary, { total: 1, stale: 1, warned: 0 });
+  assert.equal(v.kpis.openPrs, 1); assert.equal(v.kpis.waiting, 1); assert.equal(v.kpis.stale, 1);
+});
+test("buildView: la misma PR estancada en dos tickets mergeados se cuenta una vez en el resumen", () => {
+  const v = view([ticket({ key: "ICM-3", status: MD }), ticket({ key: "ICM-4", status: MD })], [pr({ title: "ICM-3 ICM-4", lastActivity: "2026-11-09T12:00:00Z" })]);
+  assert.equal(v.mergedDev.length, 2);
+  assert.equal(v.mergedDevSummary.stale, 1); assert.equal(v.kpis.stale, 1);
+});
+test("buildView: aviso 3 en un mergeado en dev (estado de categoría To Do con PR abierta) → warning en la fila y en warned", () => {
+  const v = view([ticket({ key: "ICM-5", status: MD, statusCategory: "new" })], [pr({ branch: "ICM-5" })]);
+  const r = v.mergedDev[0];
+  assert.equal(r.warning.code, 3);
+  assert.equal(r.warning.ticketUrl, "https://j.atlassian.net/browse/ICM-5");
+  assert.deepEqual(r.warning.prs, [{ number: 1, url: "https://github.com/o/r/pull/1" }]);
+  assert.deepEqual(v.mergedDevSummary, { total: 1, stale: 0, warned: 1 });
+  assert.equal(v.kpis.warned, 1);
+});
+test("buildView: GitHub caído sin datos y mergeado en dev sin PR visible → incompleto con GitHub", () => {
+  const v = buildView({ jira: jiraWith([ticket({ key: "ICM-6", status: MD })]), github: down("gh sin sesión"), bitbucket: ok({ prs: [] }) }, NOW, null);
+  assert.deepEqual(v.mergedDev[0].incomplete, ["GitHub"]);
+  assert.deepEqual(v.noPr, []);
+});
+test("buildView: mergedDev sigue el orden de Jira, agrupa PRs por repositorio (por número) y ordena repos como los paneles", () => {
+  const v = view([ticket({ key: "ICM-2", status: MD }), ticket({ key: "ICM-1", status: MD }), ticket({ key: "ICM-3" })], [
+    pr({ repo: "o/b", number: 20, url: "https://github.com/o/b/pull/20", branch: "ICM-3" }),
+    pr({ repo: "o/b", number: 7, url: "https://github.com/o/b/pull/7", branch: "ICM-2", state: "merged" }),
+    pr({ repo: "o/a", number: 9, url: "https://github.com/o/a/pull/9", branch: "ICM-2", state: "merged" }),
+    pr({ repo: "o/b", number: 3, url: "https://github.com/o/b/pull/3", branch: "ICM-2", state: "merged" })]);
+  assert.deepEqual(v.mergedDev.map((r) => r.key), ["ICM-2", "ICM-1"]);
+  const repos = v.mergedDev[0].repos;
+  assert.deepEqual(repos.map((r) => r.repo), ["o/b", "o/a"]); // o/b tiene panel (por ICM-3); o/a no
+  assert.deepEqual(repos[0].prs.map((p) => p.number), [3, 7]);
 });
 test("buildView: tickets Done no aparecen; tickets de otros no existen en la fuente", () => {
   const v = view([ticket({ key: "ICM-1", statusCategory: "done", status: "Done" }), ticket({ key: "ICM-2" })]);
