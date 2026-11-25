@@ -20,7 +20,8 @@
           "description": { "type": "string" },
           "fix": { "type": "string", "description": "Replacement code; omit if no concrete fix" },
           "fixReplacesRange": { "type": "boolean", "description": "True if fix replaces exactly startLine..line (enables GitHub suggestion)" },
-          "language": { "type": "string" }
+          "language": { "type": "string" },
+          "req": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*/REQ-[0-9]{3,}$", "description": "Optional. <capability>/REQ-NNN of the OpenSpec requirement the finding violates; only when the PR has an associated change" }
         }
       }
     },

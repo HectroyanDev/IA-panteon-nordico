@@ -27,7 +27,7 @@ Instala en modo `link`, con Munin sobre Mimisbrunnr y Bifröst como orquestador 
 | Bragi | Documentar | `nordic-pantheon:bragi` | Subagente, `sonnet`, `medium` |
 | Forseti | Commits, ramas, PRs | `nordic-pantheon:forseti` | Hilo principal, `sonnet`, `medium` |
 | Hela | Cerrar un change completado | `nordic-pantheon:hela` | Hilo principal, `sonnet`, `medium` |
-| Tyr | Revisar PRs de GitHub y Bitbucket con comentarios inline | `nordic-pantheon:tyr` | Hilo principal (lentes en subagentes paralelos), `opus`, `high` |
+| Tyr | Revisar PRs de GitHub y Bitbucket con comentarios inline; `--auto` publica sin vista previa y `nightly` revisa en lote las PRs pendientes con informe a Slack | `nordic-pantheon:tyr` | Hilo principal (lentes en subagentes paralelos), `opus`, `high` |
 | Midgard | Escena: tus tickets de Jira en curso y sus PRs, en un artifact privado siempre en la misma URL | `nordic-pantheon:midgard` | Hilo principal, `sonnet`, `medium`; refresco por tarea programada local |
 
 Bifröst delega la exploración en `hugin` o `hugin-graphify` según `HUGIN_BACKEND` (ver "Cambiar el backend de Hugin").
@@ -411,6 +411,7 @@ bash tests/install_test.sh
 bash tests/evals_test.sh
 bash tests/protocol_test.sh
 node --test tests/midgard/*.test.mjs
+node --test tests/tyr/*.test.mjs
 claude plugin validate .
 claude plugin test .
 tsc -p .

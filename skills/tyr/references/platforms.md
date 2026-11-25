@@ -14,6 +14,8 @@ URL: `https://github.com/{owner}/{repo}/pull/{n}`.
 | Hilos (para resolver) | GraphQL `repository.pullRequest(number).reviewThreads(first:100){nodes{id isResolved isOutdated comments(first:1){nodes{databaseId}}}}` |
 | Responder en hilo | `gh api repos/{owner}/{repo}/pulls/{n}/comments/{id}/replies -f body=@-` |
 | Resolver hilo | `gh api graphql -f query='mutation($t:ID!){resolveReviewThread(input:{threadId:$t}){thread{isResolved}}}' -f t={threadId}` |
+| Comentario general (aviso de tamaño) | `gh api repos/{owner}/{repo}/issues/{n}/comments -F body=@too-large.md` |
+| Buscar el aviso de tamaño | `gh api repos/{owner}/{repo}/issues/{n}/comments --paginate` y buscar `<!-- tyr:too-large -->` junto con la firma |
 | Publicar revisión | `gh api repos/{owner}/{repo}/pulls/{n}/reviews --input review.json` |
 
 `review.json` lleva los comentarios inline nuevos, el resumen y el veredicto en una sola llamada:
@@ -47,6 +49,8 @@ Usa solo nombres devueltos por `discover`. Estos existen hoy:
 | Comentario inline | `addBitbucketRepoPullRequestComment` con `content`, `inlinePath`, `inlineToLine` (+ `inlineToLineStart` si es rango) | `executeWrite` |
 | Responder en hilo | `addBitbucketRepoPullRequestComment` con `parentCommentId` | `executeWrite` |
 | Resumen | `addBitbucketRepoPullRequestComment` sin `inline*` | `executeWrite` |
+| Aviso de tamaño | `addBitbucketRepoPullRequestComment` sin `inline*` con `assets/too-large.md`. Para saber si ya existe, busca en los comentarios el título `## ⚖️ Tyr · PR demasiado larga` con la firma (Bitbucket puede no conservar el comentario HTML) | `executeWrite` / `executeRead` |
+| Mis PRs con revisión pedida (modo `nightly`, solo lectura) | `listMyBitbucketReviewRequests` (`workspaceId`, `state`, `draft`, `pagelen`); incluye PRs ya aprobadas | `executeRead` |
 | Resolver hilo | `resolveBitbucketRepoPullRequestComment` (`commentId` del comentario raíz) | `executeWrite` |
 | Aprobar | `approveBitbucketRepoPullRequest` | `executeWrite` |
 | Pedir cambios | `requestChangesOnBitbucketRepoPullRequest` | `executeWrite` |
