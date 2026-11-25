@@ -208,7 +208,7 @@ En modo `link` el cambio vale en la siguiente sesión; en modo `marketplace`, tr
 
 ## Camino plan mode
 
-Para cambios que no añaden ni modifican comportamiento que merezca spec (un ajuste, un refactor, un arreglo). Bifröst lo elige con una pregunta: ¿el cambio añade o modifica comportamiento que merezca spec? Si sí, OpenSpec; si no, plan mode; si duda, te pregunta. Las tareas mecánicas siguen resolviéndose sin más.
+Es el camino por defecto para todo cambio no mecánico: ajustes, refactors, arreglos y cambios de comportamiento sobre algo existente. OpenSpec solo entra si el cambio crea una capacidad que no existe o modifica comportamiento que describe una spec de `openspec/specs/`. Bifröst anuncia el camino en una línea (cuál y por qué), sin preguntar; solo si duda de verdad, te pregunta. Las tareas mecánicas siguen resolviéndose sin más.
 
 Flujo:
 
@@ -223,6 +223,10 @@ Sin artefactos OpenSpec: este camino no crea ni modifica nada bajo `openspec/` n
 El archivo de plan lo da el mensaje de sistema de plan mode: hoy es `~/.claude/plans/<nombre-aleatorio>.md`, fuera del repo. Ni Bifröst ni Odín fijan esa ruta; Bifröst la copia al encargo de Brokkr y Heimdall junto con el contenido del plan. En plan mode manda el panteón: los hechos del código los saca Hugin y el plan lo escribe Odín, no los subagentes genéricos `Explore` y `Plan` que propone la app.
 
 Tras aprobar, la app puede proponer una sesión paralela por cada paso independiente del plan. Bifröst sigue delegando en Brokkr en esta sesión salvo que elijas otra cosa.
+
+## Cierre encadenado (camino OpenSpec)
+
+Tras tu `Sí, confirmo` a las historias, Bifröst encadena Skuld, Brokkr y Heimdall sin preguntar. Heimdall termina su informe con `Veredicto: limpio | avisos | crítico`. Con `limpio` (cero CRITICAL y cero WARNING) y todas las casillas de `tasks.md` marcadas, Hela archiva sin preguntar e informa. Con `avisos` o casillas sin marcar (también las de pruebas manuales), Hela te pregunta `Archivar` o `Mantener abierto`. Con `crítico`, Bifröst te presenta los hallazgos y ofrece volver a Brokkr. Si `proposal.md`, `design.md` o `decisions.md` dicen `Orden de archivo: X antes que este change` y X sigue abierto, Hela no archiva y avisa. El commit sigue necesitando tu permiso.
 
 ## Contratos de traspaso
 
@@ -319,7 +323,9 @@ Una escena es una vista temática que una tarea programada local mantiene al dí
 | `odin-incomplete` | Con requisitos incompletos, Odín pregunta y no propone implementar |
 | `bifrost-no-waterfall` | Bifröst carga a Odín y no encadena Skuld, Brokkr, Heimdall ni Hela |
 | `bifrost-lookup` | Una pregunta sobre el código va a Hugin, sin Odín ni fases de planificación |
-| `bifrost-plan-mode-route` | Un refactor sin comportamiento nuevo va a plan mode, no a OpenSpec |
+| `bifrost-plan-mode-route` | Un refactor sin comportamiento nuevo va a plan mode, no a OpenSpec, y el camino se anuncia sin preguntar |
+| `bifrost-plan-mode-behavior` | Un cambio de comportamiento sobre algo existente sin spec va a plan mode, sin Skuld ni `/opsx:propose`. Limitada: el sandbox de evals no ofrece `EnterPlanMode` ni `AskUserQuestion`, y el resultado varía entre ejecuciones (ver DEC-001 de `streamline-close-and-path`) |
+| `bifrost-close-chain` | Con el resumen de Brokkr de un change confirmado, Bifröst carga a Heimdall sin preguntar |
 | `skuld-no-name` | Sin nombre de change, Skuld devuelve candidatos y no crea artefactos |
 | `brokkr-no-change` | Sin change ni plan, Brokkr devuelve la pregunta y no escribe código |
 | `munin-mimir-empty` | Con un Mimir simulado vacío, Munin dice que no hay recuerdos y no inventa |
@@ -403,6 +409,10 @@ Nueva escena Midgard (`nordic-pantheon:midgard`): artifact privado con tus ticke
 ## Cambios en 1.8.0
 
 Contratos de traspaso entre especialistas: IDs `REQ-NNN` en los requisitos (escritos como historias), `T-n` en `tasks.md`, `drift.json` y `ref` en los veredictos de Vár, `decisions.md` de Bifröst y pasos `STEP-N` en plan mode; `scripts/protocol.ts` los comprueba y necesita `bun`. Los changes en formato anterior siguen funcionando. Ver "Contratos de traspaso".
+
+## Cambios en 1.9.0
+
+Plan mode pasa a ser el camino por defecto para los cambios no mecánicos (OpenSpec solo para capacidades nuevas o comportamiento con spec en `openspec/specs/`), y Bifröst anuncia el camino en una línea sin preguntar. En el flujo OpenSpec, tras el `Sí, confirmo` el cierre se encadena: Brokkr, Heimdall sin preguntar y, con `Veredicto: limpio` (sin CRITICAL ni WARNING) y todas las casillas de `tasks.md` marcadas, Hela archiva sin preguntar; con avisos o casillas pendientes, Hela pregunta; con CRITICAL se vuelve a Brokkr. Hela no archiva si el change declara otro que debe archivarse antes. El commit sigue pidiendo permiso. Heimdall cierra su informe OpenSpec con la línea `Veredicto:`. Cambia el comportamiento por defecto: ya no se te pregunta entre plan mode y OpenSpec, y un change limpio se archiva solo.
 
 ## Pruebas
 
