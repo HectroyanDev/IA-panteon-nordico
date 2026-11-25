@@ -13,6 +13,8 @@ export type ThreadVerdict = {
   planStep: string
   reason: string
   correction: string
+  /** `T-n` (el change tiene tareas en `tasks.md`), `<capability>/REQ-NNN` (no las tiene) o `STEP-N` (plan mode); vacío si no hay referencia identificable. */
+  ref?: string
   /** Idioma del plan según el juez; sin él, `es`. */
   lang?: VarLang
 }
@@ -66,6 +68,7 @@ export type Watch = {
   panelPlaced: boolean | null
 }
 
+/** `auto`: juicio automático; `manual`: `/var`. */
 export type LogOrigin = 'auto' | 'manual'
 
 /** Tokens gastados por el juez automático de Vár (modelo y cuatro contadores). */
@@ -82,6 +85,8 @@ export type LogEntry = {
   thread: string
   verdict: VarVerdict | 'fallido'
   planStep: string
+  /** Referencia del veredicto (`T-n`, `<capability>/REQ-NNN` o `STEP-N`); vacía si no hay. */
+  ref?: string
   reason: string
   /** Corrección enviada, si la hubo. */
   correction: string | null

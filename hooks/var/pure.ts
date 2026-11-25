@@ -7,6 +7,7 @@ export const BUFFER_LIMIT = 60
 export const LOG_LIMIT = 100
 export const MAX_CORRECTIONS = 2
 export const FIELD_LIMIT = 300
+export const REF_LIMIT = 80
 
 export function trunc(text: unknown, max: number): string {
   const s = typeof text === 'string' ? text : text === undefined || text === null ? '' : String(text)
@@ -163,6 +164,7 @@ export function cleanVerdict(raw: unknown): ThreadVerdict | null {
     planStep: trunc(r.planStep, FIELD_LIMIT),
     reason: trunc(r.reason, FIELD_LIMIT),
     correction: trunc(r.correction, FIELD_LIMIT),
+    ref: trunc(r.ref, REF_LIMIT),
   }
 }
 
@@ -251,7 +253,7 @@ export function buildCorrection(v: ThreadVerdict, planLabel: string, lang: VarLa
   const t = CORRECTION_TEXT[lang]
   return [
     t.header,
-    `${t.plan}: ${planLabel}. ${t.step}: ${trunc(v.planStep, FIELD_LIMIT) || t.noStep}.`,
+    `${t.plan}: ${planLabel}. ${t.step}: ${v.ref ? `${trunc(v.ref, REF_LIMIT)} · ` : ''}${trunc(v.planStep, FIELD_LIMIT) || t.noStep}.`,
     `${t.drift}: ${trunc(v.reason, FIELD_LIMIT)}. ${t.stop}: ${trunc(v.correction, FIELD_LIMIT) || t.noStop}.`,
     t.closing,
   ].join('\n')
@@ -275,11 +277,14 @@ export function buildJudgePrompt(input: {
   planText: string
   context: string[]
   taskState: string | null
+  /** Tareas de `tasks.md` con su casilla, o requisitos del change si no hay `T-n`: lo que `ref` puede citar. */
+  refs?: string | null
   threads: ThreadActivity[]
 }): string {
   const parts: string[] = []
   parts.push(`# Plan activo\nFuente: ${input.planLabel}\n\n${input.planText.slice(0, 12000)}`)
   if (input.taskState) parts.push(`# Estado de las casillas\n${input.taskState}`)
+  if (input.refs) parts.push(`# Referencias para \`ref\`\n${input.refs}`)
   for (const c of input.context) parts.push(`# Contexto del change\n${c.slice(0, 3000)}`)
   parts.push('# Actividad de la ventana, por hilo')
   for (const t of input.threads) {
