@@ -3,7 +3,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Configuración persistida
-`install` SHALL escribir `${XDG_CONFIG_HOME:-~/.config}/nordic-pantheon/config` con el modo de instalación, el modo de Bifröst, el backend de Munin, el backend de Hugin (`HUGIN_BACKEND`), quién instaló graphify (`GRAPHIFY_INSTALLED_BY`), la ruta del backup de `CLAUDE.md` si lo hubo, la activación de la vigilancia de Vár (`VAR_ENABLED`, `on` u `off`) y sus umbrales (`VAR_MINUTES`, `VAR_TOOL_CALLS`). Reinstalar MUST sobrescribir los valores sin perder la ruta de un backup existente, un `GRAPHIFY_INSTALLED_BY` no vacío, el `VAR_ENABLED` ni los umbrales de Vár que ya hubiera.
+`install` SHALL escribir `${XDG_CONFIG_HOME:-~/.config}/nordic-pantheon/config` con las opciones de instalación (modo, Bifröst, backends de Munin y Hugin), `GRAPHIFY_INSTALLED_BY`, el backup de `CLAUDE.md` si lo hubo y la vigilancia de Vár (`VAR_ENABLED`, `VAR_MINUTES`, `VAR_TOOL_CALLS`). Reinstalar MUST sobrescribir los valores sin perder un backup existente, un `GRAPHIFY_INSTALLED_BY` no vacío ni los valores de Vár previos.
 
 #### Scenario: Config tras instalar
 - **WHEN** termina `./install.sh install --mode=link --munin=memory --bifrost=skill --hugin=plain`

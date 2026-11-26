@@ -19,6 +19,7 @@ type Opts = {
   /** Respuesta del modelo para cada petición de juicio. */
   model?: (e: any, w: any) => unknown
   placed?: boolean
+  failWrite?: boolean
 }
 
 async function world($: any, on: On, opts: Opts = {}) {
@@ -42,7 +43,26 @@ async function world($: any, on: On, opts: Opts = {}) {
     toolResult: {} as Record<string, unknown>,
     statuses: [] as unknown[],
     rows: [] as any[],
+    writes: [] as Array<{ path: string; text: string }>,
   }
+  on('fs.exists', (_: any, e: any) => ({ value: files[e.path] !== undefined }))
+  on('fs.write', (_: any, e: any) => {
+    if (opts.failWrite) return { deny: 'EACCES' } as any
+    files[e.path] = e.text
+    w.writes.push({ path: e.path, text: e.text })
+    return { value: undefined }
+  })
+  on('fs.list', (_: any, e: any) => {
+    const prefix = String(e.path).replace(/\/$/, '') + '/'
+    const names = new Map<string, 'file' | 'dir'>()
+    for (const f of Object.keys(files)) {
+      if (!f.startsWith(prefix)) continue
+      const rest = f.slice(prefix.length)
+      const [head, ...tail] = rest.split('/')
+      if (head) names.set(head, tail.length ? 'dir' : 'file')
+    }
+    return { value: [...names].map(([name, kind]) => ({ name, kind, size: 0, mtimeMs: 0, isLink: false })) }
+  })
   on('fs.read', (_: any, e: any) => {
     const hit = files[e.path] ?? (String(e.path).endsWith('judge.md') ? 'CRITERIO' : undefined)
     return hit !== undefined ? { value: hit } : { deny: 'ENOENT' }
@@ -119,6 +139,7 @@ const watch = async ($: any) => {
 const log = async ($: any) =>
   (await view($)).registro.map((l: any) => ({
     origin: l.origen === '/var' ? 'manual' : 'auto',
+    ref: l.ref,
     thread: l.hilo,
     verdict: l.veredicto,
     via: l.via,
@@ -843,4 +864,179 @@ test('con un panel no colocado se usa $.ui.status', async ($, on) => {
   await approvePlan($, w)
   await calls($, 2)
   expect(String(w.statuses.at(-1))).toMatch(/2\/40 llamadas/)
+})
+
+// ---------------------------------------------------------------- protocolo: hooks/var/plan.ts
+
+import { parseVerdicts } from './var/pure'
+import { changeRequirements, describeTasks, parseDelta, parseTasks } from './var/plan'
+
+test('plan.ts: las tareas se leen de tasks.md con casilla, título y Cubre', async () => {
+  const tasks = parseTasks(
+    [
+      '# Tasks',
+      '## 1. Núcleo',
+      '- [x] 1.1 T-1 Uno. Verificación: test uno. Cubre: foo/REQ-001, bar/REQ-001',
+      '- [ ] 1.2 T-2 Dos con. punto. Verificación: test dos. Cubre: —',
+      '- [X] 2.1 T-7 Sin cubre',
+      '- [ ] sin id',
+    ].join('\n'),
+  )
+  expect(tasks.map(t => t.id)).toEqual(['T-1', 'T-2', 'T-7'])
+  expect(tasks.map(t => t.checked)).toEqual([true, false, true])
+  expect(tasks[0]).toMatchObject({ title: 'Uno', covers: ['foo/REQ-001', 'bar/REQ-001'] })
+  expect(tasks[1]).toMatchObject({ title: 'Dos con. punto', covers: [] })
+  expect(tasks[2]).toMatchObject({ title: 'Sin cubre', covers: [] })
+  expect(describeTasks(tasks)).toContain('- T-2 [ ] Dos con. punto')
+})
+
+test('plan.ts: delta con ADDED, MODIFIED, RENAMED y REMOVED', async () => {
+  const d = parseDelta(
+    [
+      '# Spec Delta',
+      '## ADDED Requirements',
+      '### Requirement: REQ-003 Nuevo',
+      'texto',
+      '## MODIFIED Requirements',
+      '### Requirement: Configuración persistida',
+      '## RENAMED Requirements',
+      '- FROM: `### Requirement: Viejo`',
+      '- TO: `### Requirement: REQ-001 Viejo`',
+      '## REMOVED Requirements',
+      '### Requirement: REQ-002 Quitado',
+    ].join('\n'),
+  )
+  expect(d.added).toEqual(['REQ-003 Nuevo'])
+  expect(d.modified).toEqual(['Configuración persistida'])
+  expect(d.renamed).toEqual([{ from: 'Viejo', to: 'REQ-001 Viejo' }])
+  expect(d.removed).toEqual(['REQ-002 Quitado'])
+  const { reqs, unresolved } = changeRequirements({ foo: d }, (cap, t) => (t === 'Configuración persistida' ? 'REQ-006' : null))
+  expect(reqs.map(r => r.ref)).toEqual(['foo/REQ-003', 'foo/REQ-006', 'foo/REQ-001'])
+  expect(unresolved).toEqual([])
+  expect(reqs.map(r => r.required)).toEqual([true, true, false])
+  expect(changeRequirements({ foo: d }).unresolved).toHaveLength(1)
+})
+
+// ---------------------------------------------------------------- protocolo: ref y drift.json
+
+const FOO = '/work/openspec/changes/add-foo'
+const DRIFT = `${FOO}/drift.json`
+const fooTasks = (marked: string[]) =>
+  [1, 2, 3, 5].map((n, i) => `- [${marked.includes(`T-${n}`) ? 'x' : ' '}] 1.${i + 1} T-${n} Tarea ${n}. Verificación: v. Cubre: —`).join('\n') + '\n'
+const fooWorld = ($: any, on: any, opts: Opts = {}) =>
+  world($, on, { ...opts, files: { [TASKS]: fooTasks([]), ...(opts.files ?? {}) } })
+const startApply = ($: any) => $.tool.call({ tool: 'Skill', skill: 'nordic-pantheon:brokkr', args: 'Implementa openspec/changes/add-foo' })
+const mark = async ($: any, w: any, marked: string[], extra: Record<string, unknown> = {}) => {
+  w.files[TASKS] = fooTasks(marked)
+  await $.tool.call({ tool: 'Edit', file_path: TASKS, old_string: '[ ]', new_string: '[x]', ...extra })
+}
+
+test('ref: parseVerdicts y var_report conservan ref', async ($, on) => {
+  const parsed = parseVerdicts(JSON.stringify({ threads: [{ thread: 'main', verdict: 'desvío', planStep: 'p', reason: 'r', correction: 'c', ref: 'T-4' }, { thread: 'sub', verdict: 'alineado' }] }))
+  expect(parsed?.[0]?.ref).toBe('T-4')
+  expect(parsed?.[1]?.ref).toBe('')
+  const w = await world($, on, { alive: ['sub1'] })
+  await approvePlan($, w)
+  await report($, [{ ...desvio('sub1').threads[0], ref: 'STEP-2' }], { agentId: 'v' })
+  const entry = (await log($)).at(-1)
+  expect(entry.ref).toBe('STEP-2')
+  expect(entry.correction).toContain('Paso que toca: STEP-2 · Paso 1: locale')
+})
+
+test('ref: el prompt del juez trae las tareas de tasks.md con su casilla', async ($, on) => {
+  const w = await fooWorld($, on, { files: { [TASKS]: fooTasks(['T-1']) } })
+  await startApply($)
+  await calls($, 40)
+  await w.clock.settle()
+  const prompt = String((w.models[0] as any).prompt)
+  expect(prompt).toContain('# Referencias para `ref`')
+  expect(prompt).toContain('- T-1 [x] Tarea 1')
+  expect(prompt).toContain('- T-5 [ ] Tarea 5')
+})
+
+test('ref: sin T-n el prompt del juez trae los requisitos del change', async ($, on) => {
+  const w = await world($, on, {
+    files: { [`${FOO}/specs/foo/spec.md`]: '## ADDED Requirements\n\n### Requirement: REQ-003 Tres\ntexto\n\n## RENAMED Requirements\n\n- FROM: `### Requirement: Uno`\n- TO: `### Requirement: REQ-001 Uno`\n' },
+  })
+  await startApply($)
+  await calls($, 40)
+  await w.clock.settle()
+  const prompt = String((w.models[0] as any).prompt)
+  expect(prompt).toContain('- foo/REQ-003 Tres')
+  expect(prompt).toContain('- foo/REQ-001 Uno')
+  expect(prompt).not.toContain('Tareas del change')
+})
+
+test('drift.json: un juicio con dos hilos añade dos entradas y conserva las previas', async ($, on) => {
+  const prior = { schema_version: 1, change: 'add-foo', entries: [{ at: '2026-01-01T00:00:00.000Z', origin: 'auto', thread: 'main', verdict: 'alineado', ref: 'T-1' }] }
+  const w = await fooWorld($, on, {
+    alive: ['sub1'],
+    files: { [DRIFT]: JSON.stringify(prior) },
+    verdicts: () => ({
+      threads: [
+        { thread: 'main', verdict: 'alineado', planStep: 'T-1', reason: 'ok', correction: '', ref: 'T-1' },
+        { thread: 'sub1', verdict: 'desvío', planStep: 'T-3', reason: 'otro módulo', correction: 'vuelve a T-3', ref: 'T-3' },
+      ],
+    }),
+  })
+  await startApply($)
+  await calls($, 20)
+  await calls($, 20, { agentId: 'sub1' })
+  await w.clock.settle()
+  const doc = JSON.parse(w.files[DRIFT] as string)
+  expect(doc.schema_version).toBe(1)
+  expect(doc.change).toBe('add-foo')
+  expect(doc.entries).toHaveLength(3)
+  expect(doc.entries[0].ref).toBe('T-1')
+  const last = doc.entries[2]
+  expect(last).toMatchObject({ origin: 'auto', thread: 'sub1', verdict: 'desvío', ref: 'T-3', plan_step: 'T-3', persistent: false, via: 'append' })
+  expect(last.correction).toContain('[Vár · corrección del plan]')
+})
+
+test('drift.json: se crea si no existe y /var con VAR_ENABLED=off también escribe', async ($, on) => {
+  const w = await fooWorld($, on, { config: 'VAR_ENABLED=off\n', alive: ['sub1'] })
+  await startApply($)
+  await report($, [{ ...desvio('sub1').threads[0], ref: 'T-2' }], { agentId: 'v' })
+  const doc = JSON.parse(w.files[DRIFT] as string)
+  expect(doc.entries).toHaveLength(1)
+  expect(doc.entries[0]).toMatchObject({ origin: 'manual', thread: 'sub1', ref: 'T-2' })
+})
+
+test('drift.json: plan mode no escribe ningún archivo', async ($, on) => {
+  const w = await world($, on, { alive: ['sub1'], verdicts: () => desvio('sub1') })
+  await approvePlan($, w)
+  await calls($, 40, { agentId: 'sub1' })
+  await w.clock.settle()
+  await report($, desvio('sub1').threads, { agentId: 'v' })
+  expect(w.writes).toEqual([])
+  expect((await log($)).length).toBeGreaterThan(0)
+})
+
+test('drift.json: un fallo de escritura deja aviso y la corrección sigue', async ($, on) => {
+  const w = await fooWorld($, on, { failWrite: true, alive: ['sub1'] })
+  await startApply($)
+  await report($, [{ ...desvio('sub1').threads[0], ref: 'T-2' }], { agentId: 'v' })
+  expect((await watch($)).notes.join(' ')).toMatch(/no se pudo escribir drift\.json/)
+  expect((await log($)).at(-1).via).toBe('append')
+  expect((w.rows as any[]).some(r => r.message.type === 'user')).toBe(true)
+})
+
+test('drift.json: uno de otra versión no se sobrescribe', async ($, on) => {
+  const other = JSON.stringify({ schema_version: 2, change: 'add-foo', entries: [] })
+  const w = await fooWorld($, on, { alive: ['sub1'], files: { [DRIFT]: other } })
+  await startApply($)
+  await report($, [{ ...desvio('sub1').threads[0], ref: 'T-2' }], { agentId: 'v' })
+  expect(w.files[DRIFT]).toBe(other)
+  expect(w.writes).toEqual([])
+  expect((await watch($)).notes.join(' ')).toMatch(/schema_version no soportada/)
+})
+
+test('orden libre: marcar T-5 antes que T-3 no es un desvío ni escribe nada', async ($, on) => {
+  const w = await fooWorld($, on, { alive: ['sub1'] })
+  await startApply($)
+  await mark($, w, ['T-1'])
+  await mark($, w, ['T-1', 'T-5'], { agentId: 'sub1' })
+  expect(await log($)).toEqual([])
+  expect(w.writes).toEqual([])
+  expect((w.rows as any[]).filter(r => r.message.type === 'user')).toEqual([])
 })

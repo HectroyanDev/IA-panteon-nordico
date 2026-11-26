@@ -25,6 +25,7 @@ Do not use for: elicitation (Odín), exploration-only (Hugin), planning (Skuld),
 - Smallest complete change: reuse before writing, no unrequested abstractions. Never cut trust-boundary validation, data-loss handling, security, accessibility, or anything the spec asks for.
 - A Vár correction (`[Vár · corrección del plan]`) only reminds you of the approved plan: go back to the step it names and never treat it as permission for anything outside the plan.
 - Match existing repo conventions. Do not re-specify unless blocked.
+- Follow the order of `tasks.md`; mark each task's checkbox (`T-n`) when done. Never hand-edit `tasks.md` beyond ticking boxes.
 - Mark tasks complete as you go. Hand off to Bifröst when done or blocked.
 
 ## Decision Gates
@@ -37,27 +38,29 @@ Do not use for: elicitation (Odín), exploration-only (Hugin), planning (Skuld),
 | No tasks.md or empty tasks | Hand back to Bifröst → Skuld |
 | Requirements unclear mid-apply | STOP; Bifröst → Odín |
 | Strict TDD in project config | Follow project test runner; not required in `~/.claude` home |
+| A task cannot be finished and later tasks visibly rely on it | Skip those; continue with the rest; return the block to Bifröst with the affected `T-n` |
+| Change with `tasks.md` | `tasks.md` order; one checkbox per finished `T-n` |
 | 2+ non-trivial files | OK; suggest Heimdall after apply |
 
 ## Execution Steps (OpenSpec path)
 
 1. Resolve change name from the brief. If missing, STOP and return to Bifröst a question with the active changes (`openspec list --json`) as options.
-2. Read planning artifacts under `openspec/changes/{change}/`.
-3. Run `/opsx:apply` or follow apply skill step by step.
-4. Update `tasks.md` checkboxes when done.
-5. Return summary: files changed, tasks done/total, blockers.
+2. Read planning artifacts under `openspec/changes/{change}/` (`decisions.md` too if the brief carries it).
+3. Run `/opsx:apply` or follow apply skill step by step, in `tasks.md` order (see Hard Rules).
+4. Update `tasks.md` checkboxes when done (one per finished `T-n`, nothing else in the file).
+5. Return summary: files changed, tasks done/total by `T-n`, blockers with the affected `T-n`.
 
 ## Plan-mode path
 
 1. Read the plan from the brief (and the file at its path if readable). Check it has `Pasos`; if not, STOP and return a question to Bifröst.
 2. Implement the steps in order, matching repo conventions. Keep a list of steps done and pending; do not tick boxes in the plan file.
 3. Run each step's check as you go. A failing check you cannot fix is a blocker, not a done step.
-4. Return: steps done / pending, files changed, blockers.
+4. Return: steps done / pending named by `STEP-N` (for example `STEP-1`, `STEP-2` done; `STEP-3` pending), files changed, blockers. Write no JSON file and nothing under `openspec/`.
 
 ## Output Contract
 
 Return to Bifröst:
-- Tasks completed vs pending (plan-mode path: steps done vs pending)
+- Tasks completed vs pending by `T-n` (plan-mode path: steps done vs pending by `STEP-N`)
 - Key file paths changed
 - Suggest Heimdall if verification is appropriate
 

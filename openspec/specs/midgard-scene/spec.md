@@ -21,22 +21,30 @@ Midgard SHALL reconocer como "mergeado en dev" un ticket en curso cuyo nombre de
 
 #### Scenario: Otras mayúsculas
 - **WHEN** el estado de un ticket es "done (merged in dev)" y la lista contiene "Done (Merged in Dev)"
-- **THEN** el ticket lleva la etiqueta "mergeado en dev"
+- **THEN** el ticket aparece en el panel "Mergeados en dev"
 
 #### Scenario: Nombre parecido
 - **WHEN** el estado de un ticket es "Not merged" o "Merged" y la lista solo contiene "Done (Merged in Dev)"
-- **THEN** el ticket no lleva la etiqueta
+- **THEN** el ticket no aparece en el panel "Mergeados en dev"
 
 #### Scenario: Lista vacía
 - **WHEN** `jiraMergedStatuses` es una lista vacía
-- **THEN** ningún ticket lleva la etiqueta y los tickets en "Done (Merged in Dev)" se tratan como cualquier otro ticket en curso
+- **THEN** ningún ticket aparece en el panel "Mergeados en dev" y los tickets en "Done (Merged in Dev)" se tratan como cualquier otro ticket en curso
 
 ### Requirement: REQ-003 Presentación de tickets mergeados en dev
-Un ticket mergeado en dev SHALL mostrarse como el resto de tickets en curso, con la etiqueta visible "mergeado en dev" junto a su estado, y MUST contar en la cifra de tickets en curso.
+Un ticket mergeado en dev SHALL mostrarse solo en el panel "Mergeados en dev", no en los paneles por repositorio ni en el bloque "Sin PR", y MUST seguir contando en las cifras de cabecera, junto con sus PRs, igual que cualquier ticket en curso.
 
 #### Scenario: Estado mergeado en dev
-- **WHEN** `ICM-1398` está en "Done (Merged in Dev)", de categoría In Progress en Jira, con la lista por defecto
-- **THEN** aparece en la página con su estado y la etiqueta "mergeado en dev", y cuenta en la cifra de tickets en curso
+- **WHEN** `ICM-1398` está en "Done (Merged in Dev)", de categoría In Progress en Jira, con la lista por defecto y su única PR mergeada en `casfidIdasfest/icm-backoffice`
+- **THEN** aparece en el panel "Mergeados en dev", no aparece en el panel de `casfidIdasfest/icm-backoffice` y cuenta en la cifra de tickets en curso
+
+#### Scenario: Mergeado en dev con PR abierta
+- **WHEN** un ticket mergeado en dev tiene una PR abierta esperando revisión en `org/r` y ningún otro ticket en curso la nombra
+- **THEN** la PR no aparece en el panel de `org/r` y cuenta en las cifras de PRs abiertas y de PRs esperando revisión
+
+#### Scenario: PR compartida con un ticket no mergeado
+- **WHEN** una PR abierta nombra `ICM-1`, en In Progress, e `ICM-2`, mergeado en dev
+- **THEN** la PR aparece en la fila de `ICM-1` de su panel de repositorio, `ICM-2` aparece en "Mergeados en dev" con el enlace a esa PR, y la cifra de PRs abiertas la cuenta una vez
 
 ### Requirement: REQ-004 PRs propias consideradas
 Midgard SHALL considerar solo las PRs cuyo autor es el humano, en GitHub y, en Bitbucket, en el workspace guardado en el estado de la escena (`bitbucketWorkspace`): todas las abiertas y las mergeadas o cerradas sin merge en los últimos 90 días. Las PRs donde el humano solo es revisor MUST no aparecer.
@@ -69,18 +77,26 @@ Una PR SHALL enlazarse a un ticket cuando la clave del ticket aparece en el nomb
 - **THEN** la PR no se enlaza a `ICM-123`
 
 ### Requirement: REQ-006 Agrupación por repositorio
-Midgard SHALL agrupar las filas en un panel por repositorio, derivado de las PRs enlazadas, sin lista de repositorios configurada. Cada panel MUST indicar si el repositorio es de GitHub o de Bitbucket. Un ticket con PRs en varios repositorios MUST aparecer en el panel de cada uno con la PR de ese repositorio; con varias PRs en el mismo repositorio, una fila por PR.
+Midgard SHALL agrupar las filas de los tickets en curso que no están mergeados en dev en un panel por repositorio, derivado de sus PRs enlazadas, sin lista de repositorios configurada. Cada panel MUST indicar si el repositorio es de GitHub o de Bitbucket. Un ticket con PRs en varios repositorios MUST aparecer en el panel de cada uno con la PR de ese repositorio; con varias PRs en el mismo repositorio, una fila por PR.
 
 #### Scenario: Ticket en dos repositorios
 - **WHEN** `ICM-1405` tiene una PR en `org/payments-api` y otra en `org/web-checkout`
 - **THEN** aparece en los dos paneles, cada uno con su PR
 
+#### Scenario: Repositorio solo con tickets mergeados en dev
+- **WHEN** todas las PRs de `org/facturas` están enlazadas solo a tickets mergeados en dev
+- **THEN** no hay panel de `org/facturas`
+
 ### Requirement: REQ-007 Bloque "Sin PR"
-Midgard SHALL mostrar en un bloque "Sin PR" los tickets en curso sin ninguna PR enlazada.
+Midgard SHALL mostrar en un bloque "Sin PR" los tickets en curso que no están mergeados en dev y no tienen ninguna PR enlazada.
 
 #### Scenario: Ticket sin PR
-- **WHEN** un ticket en curso no tiene ninguna PR enlazada
+- **WHEN** un ticket en curso no mergeado en dev no tiene ninguna PR enlazada
 - **THEN** aparece en el bloque "Sin PR" y en ningún panel de repositorio
+
+#### Scenario: Mergeado en dev sin PR
+- **WHEN** un ticket mergeado en dev no tiene ninguna PR enlazada
+- **THEN** no aparece en el bloque "Sin PR" y aparece en el panel "Mergeados en dev"
 
 ### Requirement: REQ-008 Estado de cada PR
 Cada PR SHALL mostrar un único estado, evaluado en este orden: "Mergeada"; "Cerrada sin merge"; "Borrador" (abierta y marcada como borrador); "Cambios pedidos" (abierta con al menos una revisión vigente que pide cambios); "Lista para merge" (abierta con aprobaciones suficientes); "Esperando revisión" (el resto de abiertas). Las aprobaciones son suficientes cuando alcanzan las requeridas por el repositorio; si el número requerido no se puede leer, cuando la plataforma da la PR por aprobada.
@@ -154,7 +170,7 @@ El último movimiento de una PR SHALL ser el más reciente entre su último comm
 - **THEN** su último movimiento es el comentario de ayer
 
 ### Requirement: REQ-013 Estancamiento
-Midgard SHALL marcar como estancada una PR abierta, o un ticket del bloque "Sin PR", que lleva 5 o más días laborables sin movimiento. Días laborables son de lunes a viernes en la zona horaria de la máquina, sin festivos, contados desde el día siguiente al último movimiento hasta el día del refresco, ambos incluidos. Cada fila MUST mostrar sus días laborables sin movimiento.
+Midgard SHALL marcar como estancada una PR abierta, o un ticket en curso sin ninguna PR enlazada, que lleva 5 o más días laborables sin movimiento. Días laborables son de lunes a viernes en la zona horaria de la máquina, sin festivos, contados desde el día siguiente al último movimiento hasta el día del refresco, ambos incluidos. Cada fila de los paneles por repositorio y de "Sin PR" MUST mostrar sus días laborables sin movimiento.
 
 #### Scenario: Cinco días laborables
 - **WHEN** el último movimiento de una PR abierta fue el lunes 9 y el refresco es el lunes 16
@@ -170,7 +186,7 @@ Midgard SHALL marcar como estancada una PR abierta, o un ticket del bloque "Sin 
 
 #### Scenario: Mergeado en dev sin PR y quieto
 - **WHEN** un ticket en "Done (Merged in Dev)" no tiene PR enlazada y su última actualización en Jira fue hace 5 días laborables
-- **THEN** aparece en "Sin PR" con la etiqueta "mergeado en dev" y se marca como estancado
+- **THEN** aparece en "Mergeados en dev" y no en "Sin PR", se marca como estancado y cuenta en la cifra de estancadas
 
 ### Requirement: REQ-014 Avisos de coherencia Jira↔repo
 Midgard SHALL mostrar un aviso en la fila del ticket, con enlace al ticket y a sus PRs, en estos casos: (1) no está mergeado en dev y tiene al menos una PR mergeada y ninguna abierta (las cerradas sin merge no cuentan); (2) está en un estado de revisión y no tiene ninguna PR abierta; (3) está en un estado de categoría To Do y tiene al menos una PR abierta. Midgard MUST solo avisar y nunca cambiar el ticket.
@@ -223,11 +239,11 @@ Un ticket mergeado en dev SHALL no dar el aviso (1), porque ese estado ya es coh
 
 #### Scenario: Mergeado en dev con PR mergeada
 - **WHEN** `ICM-1398` está en "Done (Merged in Dev)" y su única PR está mergeada
-- **THEN** su fila muestra la etiqueta "mergeado en dev", no muestra el aviso de PRs mergeadas con Jira abierto y el ticket no cuenta en la cifra de tickets con aviso
+- **THEN** aparece en "Mergeados en dev" sin el aviso de PRs mergeadas con Jira abierto y el ticket no cuenta en la cifra de tickets con aviso
 
 #### Scenario: Mergeado en dev con la lista vacía
 - **WHEN** `jiraMergedStatuses` es una lista vacía y un ticket en "Done (Merged in Dev)" tiene su única PR mergeada
-- **THEN** su fila muestra el aviso de PRs mergeadas con Jira abierto
+- **THEN** aparece en el panel del repositorio de su PR, no en "Mergeados en dev", y su fila muestra el aviso de PRs mergeadas con Jira abierto
 
 ### Requirement: REQ-017 Avisos con una fuente de PRs caída
 Si GitHub o Bitbucket fallan sin datos previos válidos, Midgard SHALL no mostrar como ciertos los avisos que dependen de que no haya PR abierta, (1) y (2), ni la pertenencia al bloque "Sin PR", porque la PR que falta puede estar en la fuente caída: esas filas MUST mostrarse con la marca "incompleto" nombrando la fuente. El aviso (3) se basa en una PR abierta visible y MUST mostrarse igual.
@@ -237,11 +253,15 @@ Si GitHub o Bitbucket fallan sin datos previos válidos, Midgard SHALL no mostra
 - **THEN** el ticket aparece en "Sin PR" con la marca "incompleto: GitHub" y sin el aviso de ticket en revisión sin PR abierta
 
 ### Requirement: REQ-018 Cifras de cabecera
-Midgard SHALL mostrar encima de los paneles: tickets en curso, PRs abiertas, PRs esperando revisión, PRs con cambios pedidos, estancadas (PRs abiertas más tickets "Sin PR") y tickets con aviso Jira↔repo. Una PR enlazada a varios tickets MUST contarse una vez.
+Midgard SHALL mostrar encima de los paneles: tickets en curso, PRs abiertas, PRs esperando revisión, PRs con cambios pedidos, estancadas (PRs abiertas más tickets en curso sin PR enlazada) y tickets con aviso Jira↔repo. Una PR enlazada a varios tickets MUST contarse una vez. Los tickets mergeados en dev y sus PRs MUST contar en las seis cifras con las mismas reglas que el resto.
 
 #### Scenario: PR con dos claves
 - **WHEN** una PR abierta nombra `ICM-1` e `ICM-2`, ambos en curso
 - **THEN** aparece en las dos filas y la cifra de PRs abiertas la cuenta una vez
+
+#### Scenario: Mergeados en dev en las cifras
+- **WHEN** `ICM-1470` está mergeado en dev con su única PR mergeada e `ICM-1471` está mergeado en dev sin PR y con 5 días laborables sin movimiento
+- **THEN** la cifra de tickets en curso cuenta los dos y la de estancadas cuenta `ICM-1471`, con los mismos valores que si se mostraran en los paneles por repositorio y en "Sin PR"
 
 ### Requirement: REQ-019 Horario de refresco de Midgard
 Midgard SHALL refrescarse por defecto a las 08:00 y a las 14:00, de lunes a viernes, en la hora local de la máquina (expresión cron `0 8,14 * * 1-5`). La próxima actualización que muestra la página MUST ser la siguiente hora de ese horario posterior al refresco, saltando el fin de semana. El humano MAY cambiar el horario con `/midgard horario "<cron>"`.
@@ -263,7 +283,7 @@ Midgard SHALL refrescarse por defecto a las 08:00 y a las 14:00, de lunes a vier
 - **THEN** abierta a las 15:30 la página no muestra aviso, y abierta a las 16:30 muestra el aviso de que la tarea programada puede no estar corriendo
 
 ### Requirement: REQ-020 Diseño "Tablero de operaciones"
-La página de Midgard SHALL seguir el diseño "Tablero de operaciones": franja de cifras arriba; un panel por repositorio con las columnas Ticket, Jira, PR (número, estado y título), Revisión y días quieta; el aviso Jira↔repo como fila ámbar bajo la fila afectada; la marca roja de estancado; y el panel "Sin PR" al final. MUST verse bien en claro y en oscuro y en anchura de móvil sin desplazamiento horizontal de la página.
+La página de Midgard SHALL seguir el diseño "Tablero de operaciones": franja de cifras arriba; un panel por repositorio con las columnas Ticket, Jira, PR (número, estado y título), Revisión y días quieta; el aviso Jira↔repo como fila ámbar bajo la fila afectada; la marca roja de estancado; el panel "Sin PR"; y al final el panel plegable "Mergeados en dev". MUST verse bien en claro, en oscuro y en anchura de móvil sin desplazamiento horizontal de la página, y usarse con el teclado.
 
 #### Scenario: Modo oscuro
 - **WHEN** el humano abre la página con el sistema en modo oscuro
@@ -272,3 +292,57 @@ La página de Midgard SHALL seguir el diseño "Tablero de operaciones": franja d
 #### Scenario: Sin tickets
 - **WHEN** el humano no tiene tickets en curso
 - **THEN** la página muestra las cifras a cero y un mensaje de que no hay tickets en curso
+
+#### Scenario: Teclado
+- **WHEN** el humano recorre la página con Tab
+- **THEN** llega a la cabecera del panel "Mergeados en dev" con el foco visible y la despliega y la repliega con Enter o Espacio
+
+#### Scenario: Móvil con el panel desplegado
+- **WHEN** la página se abre con 375 px de ancho y el panel "Mergeados en dev" desplegado
+- **THEN** la página no se desplaza en horizontal
+
+### Requirement: REQ-021 Panel "Mergeados en dev"
+Midgard SHALL mostrar los tickets mergeados en dev en un panel "Mergeados en dev", plegado al cargar la página, que se despliega y se repliega con un clic o con el teclado. Su cabecera MUST verse estando plegado y mostrar el total de tickets del panel. Desplegado, cada ticket MUST ocupar una fila compacta con su clave enlazada a Jira, su título, los repositorios de sus PRs y un enlace a cada PR, sin detalle de revisión.
+
+#### Scenario: Plegado al abrir
+- **WHEN** hay 2 tickets mergeados en dev y el humano abre la página
+- **THEN** el panel está plegado, su cabecera muestra "Mergeados en dev" y el total 2, y las filas no se ven
+
+#### Scenario: Desplegar y replegar
+- **WHEN** el humano pulsa la cabecera del panel plegado y después la vuelve a pulsar
+- **THEN** primero se ven las filas y después el panel vuelve a quedar plegado
+
+#### Scenario: Fila con PR
+- **WHEN** `ICM-1470` está mergeado en dev con su única PR, la #2350 de `feverup/payments-api`, mergeada
+- **THEN** su fila muestra la clave enlazada a Jira, el título, `feverup/payments-api` y un enlace a la #2350, sin aprobaciones, hilos sin resolver ni revisores pendientes
+
+#### Scenario: Fila sin PR
+- **WHEN** `ICM-1471` está mergeado en dev sin ninguna PR enlazada
+- **THEN** su fila muestra la clave enlazada a Jira y el título, e indica que no tiene PR enlazada
+
+#### Scenario: Sin tickets mergeados en dev
+- **WHEN** ningún ticket en curso está mergeado en dev
+- **THEN** el panel "Mergeados en dev" no aparece
+
+#### Scenario: Fuente de PRs caída
+- **WHEN** GitHub falla sin datos previos válidos e `ICM-1471`, mergeado en dev, no tiene ninguna PR visible
+- **THEN** su fila lleva la marca "incompleto: GitHub"
+
+### Requirement: REQ-022 Motivos de las cifras en el panel "Mergeados en dev"
+Un ticket del panel "Mergeados en dev" que cuenta en la cifra de estancadas o en la de avisos Jira↔repo SHALL mostrar el motivo en su fila: la marca roja de estancado con sus días laborables quieto, o el aviso con su texto y sus enlaces. Cada enlace a una PR MUST mostrar su estado. La cabecera del panel MUST mostrar, también plegado, cuántos estancados (con las unidades de la cifra de estancadas) y cuántos tickets con aviso contiene.
+
+#### Scenario: Ticket sin PR estancado
+- **WHEN** `ICM-1471`, mergeado en dev y sin PR, lleva 5 días laborables sin movimiento
+- **THEN** la cabecera plegada del panel muestra 1 estancado y, desplegado, su fila muestra la marca de estancado y 5 días
+
+#### Scenario: PR abierta estancada
+- **WHEN** un ticket mergeado en dev tiene una PR abierta esperando revisión con 6 días laborables sin movimiento
+- **THEN** su fila muestra el enlace a la PR con el estado "Esperando revisión" y la marca de estancado, la cabecera del panel muestra 1 estancado y la cifra de estancadas la cuenta
+
+#### Scenario: Ticket con aviso
+- **WHEN** un ticket mergeado en dev da el aviso (3) porque su estado es de categoría To Do y tiene una PR abierta
+- **THEN** su fila muestra el aviso con su texto y enlaces, la cabecera del panel muestra 1 aviso y la cifra de avisos Jira↔repo lo cuenta
+
+#### Scenario: Sin motivos
+- **WHEN** ningún ticket del panel está estancado ni tiene aviso
+- **THEN** la cabecera del panel muestra solo el título y el total

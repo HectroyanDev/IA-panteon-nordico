@@ -35,7 +35,12 @@ Fold the answers. Do not sketch implementations "while we wait", and never answe
 
 ## Confirmation gate
 
-Restate in the user's language, in the message:
+OpenSpec path: write 1–3 user stories in the user's language, in the message, instead of the six-field restate. Each story:
+
+- **Como** <rol> **quiero** <capacidad> **para** <beneficio>
+- 3–5 scenarios as acceptance criteria (`WHEN` … `THEN` …), observable, no implementation detail
+
+Outside OpenSpec, restate in the user's language, in the message:
 
 - Outcome
 - User
@@ -44,5 +49,5 @@ Restate in the user's language, in the message:
 - Constraint
 - Out of scope
 
-Then call `AskUserQuestion` with one question ("¿Confirmas el restate?") and options `Sí, confirmo` / `Corregir`. Proceed only when `Sí, confirmo` is selected. "Other" text, "ok", "dale", "como veas" or "sounds good" is not a yes: treat it as a correction and restate again.
+Then call `AskUserQuestion` with one question ("¿Confirmas las historias?" / "¿Confirmas el restate?") and options `Sí, confirmo` / `Corregir`. Proceed only when `Sí, confirmo` is selected. "Other" text, "ok", "dale", "como veas" or "sounds good" is not a yes: treat it as a correction, adjust and ask again. In the OpenSpec path this yes is the only stop before planning and implementing.
 In plan mode this gate does not apply: see `plan-mode.md`.

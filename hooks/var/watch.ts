@@ -5,6 +5,7 @@ import type { EngineInterface } from 'claude-code'
 import type { JudgeUsage, LogEntry, LogUsage, LogOrigin, ThreadState, ThreadVerdict, VarLang, Watch, WatchSource } from '../../types'
 import {
   BUFFER_LIMIT,
+  FIELD_LIMIT,
   LOG_LIMIT,
   MAX_CORRECTIONS,
   activeChanges,
@@ -29,6 +30,8 @@ import {
   trunc,
 } from './pure'
 import type { Settings, ThreadActivity } from './pure'
+import { SCHEMA_VERSION, changeRequirements, describeTasks, parseDelta, parseTasks } from './plan'
+import type { Delta } from './plan'
 
 type Engine = EngineInterface
 type Ev = Record<string, any>
@@ -205,6 +208,7 @@ export async function ensureSetup($: Engine): Promise<void> {
                   thread: { type: 'string', description: '"main" o un agentId' },
                   verdict: { type: 'string', enum: ['alineado', 'menor', 'desvío'] },
                   planStep: { type: 'string' },
+                  ref: { type: 'string', description: '`T-n` (el change tiene T-n en tasks.md), `<capability>/REQ-NNN` (no los tiene) o `STEP-N` (plan mode); vacío si no hay' },
                   reason: { type: 'string' },
                   correction: { type: 'string' },
                 },
@@ -382,7 +386,40 @@ export async function onApplyStarted($: Engine, args: unknown, explicitOnly: boo
   const base = `${cwd}/openspec/changes/${name}`
   const context: string[] = []
   for (const f of ['proposal.md', 'design.md']) if ((await readIf($, `${base}/${f}`)) !== null) context.push(`${base}/${f}`)
-  await activate($, { source: 'openspec', path: `${base}/tasks.md`, planText: null, changeName: name, contextPaths: context })
+  await activate($, {
+    source: 'openspec',
+    path: `${base}/tasks.md`,
+    planText: null,
+    changeName: name,
+    contextPaths: context,
+  })
+}
+
+function dirOf(path: string): string {
+  const i = path.lastIndexOf('/')
+  return i < 0 ? '.' : path.slice(0, i)
+}
+
+/** Lo que el juez puede citar en `ref`: las tareas de `tasks.md` (`T-n`, casilla, título) o, sin `T-n`, los requisitos del change. */
+async function refGuide($: Engine, base: string): Promise<string | null> {
+  const tasksText = await readIf($, `${base}/tasks.md`)
+  const tasks = tasksText === null ? [] : parseTasks(tasksText)
+  if (tasks.length > 0) {
+    return `Tareas del change (tasks.md), con su casilla; \`ref\` es el \`T-n\` de la tarea afectada:\n${describeTasks(tasks)}`
+  }
+  const deltas: Record<string, Delta> = {}
+  try {
+    for (const e of await $.fs.list(`${base}/specs`)) {
+      if (e.kind !== 'dir') continue
+      const text = await readIf($, `${base}/specs/${e.name}/spec.md`)
+      if (text !== null) deltas[e.name] = parseDelta(text)
+    }
+  } catch {
+    return null
+  }
+  const { reqs } = changeRequirements(deltas)
+  if (reqs.length === 0) return null
+  return `Requisitos del change; \`ref\` es el \`<capability>/REQ-NNN\` afectado:\n${reqs.map(q => `- ${q.ref} ${q.name}`).join('\n')}`
 }
 
 /** Tras un `Edit`/`Write` de `tasks.md`: si no queda casilla abierta, fin de la vigilancia. */
@@ -601,11 +638,13 @@ async function judge($: Engine, snap: Snapshot, now: number, spent: Spent): Prom
     threads.push({ thread, calls, messages: await recentAssistantText($, thread) })
   }
   if (threads.length === 0) return 'sin actividad que juzgar'
+  const refs = snap.source === 'openspec' && snap.planPath ? await refGuide($, dirOf(snap.planPath)) : null
   const prompt = buildJudgePrompt({
     planLabel: snap.planPath ?? CORRECTION_TEXT.es.planSession,
     planText,
     context,
     taskState: snap.source === 'openspec' ? 'Las casillas marcadas con [x] están hechas; las [ ] pendientes.' : null,
+    refs,
     threads,
   })
   let verdicts: ThreadVerdict[] | null = null
@@ -730,6 +769,56 @@ async function notifyDesvio($: Engine, text: string): Promise<void> {
   }
 }
 
+// ---------------------------------------------------------------- drift.json (D11)
+
+/** Añade el veredicto a `drift.json` del change (solo camino OpenSpec). Un fallo deja un aviso y nada más. */
+async function recordDrift($: Engine, entry: LogEntry): Promise<void> {
+  const w = await readWatch($)
+  if (w.source !== 'openspec' || !w.path || !w.changeName) return
+  const path = `${dirOf(w.path)}/drift.json`
+  const change = w.changeName
+  const failure = await serial(async (): Promise<string | null> => {
+    try {
+      let doc: { schema_version: number; change: string; entries: unknown[] } = { schema_version: SCHEMA_VERSION, change, entries: [] }
+      if (await $.fs.exists(path)) {
+        const raw = await $.fs.read(path)
+        let parsed: unknown
+        try {
+          parsed = JSON.parse(typeof raw === 'string' ? raw : '')
+        } catch {
+          return 'drift.json no es JSON válido: no se escribe'
+        }
+        const p = parsed as { schema_version?: unknown; entries?: unknown }
+        if (typeof parsed !== 'object' || parsed === null || p.schema_version !== SCHEMA_VERSION || !Array.isArray(p.entries)) {
+          return `drift.json con schema_version no soportada (se espera ${SCHEMA_VERSION}): no se sobrescribe`
+        }
+        doc = { ...(parsed as typeof doc), entries: p.entries }
+      }
+      doc.entries.push({
+        at: new Date(entry.at).toISOString(),
+        origin: entry.origin,
+        thread: entry.thread,
+        verdict: entry.verdict,
+        ref: entry.ref ?? '',
+        plan_step: entry.planStep,
+        reason: entry.reason,
+        correction: entry.correction,
+        via: entry.via,
+        persistent: entry.persistent,
+      })
+      await $.fs.write(path, JSON.stringify(doc, null, 2) + '\n')
+      return null
+    } catch (err) {
+      return `no se pudo escribir drift.json (${trunc(String(err), 100)})`
+    }
+  })
+  if (failure) {
+    await editWatch($, x => {
+      if (!x.notes.includes(failure)) x.notes = [...x.notes, failure]
+    })
+  }
+}
+
 /** Una sola vía de reconducción para el juicio automático (`auto`) y `/var` (`manual`). */
 export async function applyVerdict($: Engine, v: ThreadVerdict, origin: LogOrigin, ctx: ApplyContext, usage?: LogUsage): Promise<Applied> {
   const now = await $.clock.now()
@@ -768,7 +857,7 @@ export async function applyVerdict($: Engine, v: ThreadVerdict, origin: LogOrigi
       await $.session.append({
         message: {
           type: 'system',
-          content: [{ type: 'text', text: `Vár: desvío en ${threadLabel(v.thread)} (${trunc(v.planStep, 80) || 'sin paso'}). Corrección enviada por ${via}.` }],
+          content: [{ type: 'text', text: `Vár: desvío en ${threadLabel(v.thread)} (${v.ref ? `${trunc(v.ref, 40)} · ` : ''}${trunc(v.planStep, 80) || 'sin paso'}). Corrección enviada por ${via}.` }],
         },
       })
     } catch {
@@ -780,19 +869,22 @@ export async function applyVerdict($: Engine, v: ThreadVerdict, origin: LogOrigi
     note = 'ya corregido en esta ventana: no se inyecta otra vez'
   }
   const persistent = decision === 'persistent'
-  await addLog($, {
+  const entry: LogEntry = {
     at: now,
     origin,
     thread: v.thread,
     verdict: v.verdict,
     planStep: v.planStep,
+    ref: v.ref ?? '',
     reason: v.reason,
     correction,
     via,
     persistent,
     note,
     ...(usage ? { usage } : {}),
-  })
+  }
+  await addLog($, entry)
+  await recordDrift($, entry)
   if (v.verdict === 'desvío') await notifyDesvio($, notifyText(v.thread, v.planStep, persistent))
   const outcome =
     v.verdict !== 'desvío'
@@ -816,6 +908,7 @@ function compactLog(log: LogEntry[]): unknown[] {
     origen: l.origin === 'manual' ? '/var' : 'auto',
     hilo: l.thread,
     veredicto: l.verdict,
+    ref: l.ref ?? '',
     paso: l.planStep,
     motivo: l.reason,
     via: l.via,

@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "change": "midgard-merged-dev-panel",
+  "validated_at": "2026-11-18T12:00:00Z",
+  "commit": "aa4db3c",
+  "dirty": true,
+  "requirements": [
+    { "id": "midgard-scene/REQ-002", "status": "pass",
+      "evidence": [
+        { "type": "test", "ref": "tests/midgard/rules.test.mjs", "detail": "isMergedInDev: mayúsculas, espacios, nombres parecidos y lista vacía; buildView con mergedStatuses [] deja mergedDev vacío" },
+        { "type": "file", "ref": "skills/midgard/scripts/rules.mjs:173" },
+        { "type": "command", "ref": "node --test tests/midgard/*.test.mjs", "result": "99 pass, 0 fail, 1 skip (prueba de plantilla real con la plantilla mínima)" }
+      ] },
+    { "id": "midgard-scene/REQ-003", "status": "pass",
+      "evidence": [
+        { "type": "file", "ref": "skills/midgard/scripts/rules.mjs:173" },
+        { "type": "test", "ref": "tests/midgard/rules.test.mjs", "detail": "PR mergeada → solo en mergedDev; PR abierta compartida con ticket no mergeado → panel por ICM-1, enlazada en mergedDev, openPrs 1" },
+        { "type": "test", "ref": "tests/midgard/build.test.mjs", "detail": "ICM-1470 e ICM-1471 en mergedDev y fuera de panels y noPr" }
+      ] },
+    { "id": "midgard-scene/REQ-006", "status": "pass",
+      "evidence": [
+        { "type": "test", "ref": "tests/midgard/rules.test.mjs", "detail": "repositorio solo con PRs de tickets mergeados en dev → panels vacío" },
+        { "type": "file", "ref": "skills/midgard/scripts/rules.mjs:209" }
+      ] },
+    { "id": "midgard-scene/REQ-007", "status": "pass",
+      "evidence": [
+        { "type": "test", "ref": "tests/midgard/rules.test.mjs", "detail": "mergeado en dev sin PR → mergedDev, noPr vacío" },
+        { "type": "test", "ref": "tests/midgard/build.test.mjs", "detail": "jiraMergedStatuses [] devuelve ICM-1471 a noPr" }
+      ] },
+    { "id": "midgard-scene/REQ-013", "status": "pass",
+      "evidence": [
+        { "type": "test", "ref": "tests/midgard/rules.test.mjs", "detail": "mergeado sin PR con 5 días → stale, kpis.stale 1; PR abierta de 6 días → stale" },
+        { "type": "file", "ref": "skills/midgard/scripts/rules.mjs:232" },
+        { "type": "command", "ref": "navegador: scratchpad/rich/wrapped.html", "result": "ICM-1471 'sin PR enlazada ● 5 d' con borde rojo" }
+      ] },
+    { "id": "midgard-scene/REQ-016", "status": "pass",
+      "evidence": [
+        { "type": "test", "ref": "tests/midgard/rules.test.mjs", "detail": "mergeado con PR mergeada sin aviso; aviso 3 con categoría new; [] → aviso 1 en el panel" },
+        { "type": "test", "ref": "tests/midgard/build.test.mjs", "detail": "ICM-1470 warning null con lista por defecto y code 1 con []" }
+      ] },
+    { "id": "midgard-scene/REQ-018", "status": "pass",
+      "evidence": [
+        { "type": "test", "ref": "tests/midgard/build.test.mjs", "detail": "kpis del fixture fijados {23,14,6,2,3,6}" },
+        { "type": "command", "ref": "node --test (prueba de cifras de T-1) contra el código de HEAD aa4db3c extraído con git archive", "result": "ok: los valores fijados coinciden con el código anterior" },
+        { "type": "command", "ref": "build.mjs con las fuentes reales copiadas, código de HEAD frente al nuevo, --now 2026-11-18T07:30:00Z", "result": "kpis idénticos {35,10,2,1,22,5}" }
+      ] },
+    { "id": "midgard-scene/REQ-020", "status": "pass",
+      "evidence": [
+        { "type": "file", "ref": "skills/midgard/assets/template.html:80" },
+        { "type": "command", "ref": "navegador: rich/wrapped.html, Tab desde el último enlace previo", "result": "foco en SUMMARY, :focus-visible, outline 2px solid accent; Enter abre, Espacio cierra y vuelve a abrir" },
+        { "type": "command", "ref": "navegador: 375x812 claro, panel desplegado (rich y live)", "result": "scrollWidth 375 = innerWidth 375; ningún elemento del panel sobrepasa el viewport" },
+        { "type": "command", "ref": "navegador: oscuro (prefers-color-scheme dark) 372 px y 1280 px", "result": "paleta oscura, marcas roja y ámbar distinguibles; panel ocupa todo el ancho de la rejilla (1208/1208)" }
+      ] },
+    { "id": "midgard-scene/REQ-021", "status": "pass",
+      "evidence": [
+        { "type": "file", "ref": "skills/midgard/assets/template.html:215" },
+        { "type": "test", "ref": "tests/midgard/rules.test.mjs", "detail": "fila con repos/PRs sin revisión; GitHub caído → incomplete ['GitHub']; orden de Jira" },
+        { "type": "test", "ref": "tests/midgard/build.test.mjs", "detail": "plantilla real: <details class=\"panel merged\"> sin open, summary 'Mergeados en dev'" },
+        { "type": "command", "ref": "navegador: rich/wrapped.html", "result": "details cerrado al cargar, último hijo de .panels, filas no visibles; con mergedStatuses [] no hay panel" }
+      ] },
+    { "id": "midgard-scene/REQ-022", "status": "pass",
+      "evidence": [
+        { "type": "test", "ref": "tests/midgard/rules.test.mjs", "detail": "mergedDevSummary stale/warned; PR estancada compartida contada una vez" },
+        { "type": "file", "ref": "skills/midgard/assets/template.html:227" },
+        { "type": "command", "ref": "navegador: rich/wrapped.html (ICM-1431 y ICM-1377 pasados a Done (Merged in Dev))", "result": "cabecera plegada '2 estancados · 1 aviso · 4 tickets'; fila con aviso ámbar y enlaces; PR '#839 Lista para merge ● 7 d'; fixture sin motivos de aviso muestra solo estancado y total" }
+      ] }
+  ]
+}

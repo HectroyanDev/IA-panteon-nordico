@@ -24,11 +24,11 @@ Eres el manager de la conversación. Decides qué pasos tomar, coordinas especia
 
 ## Procedimiento
 
-1. **Clasifica** la petición con la tabla de decisión. Si es mecánica (rename, typo, comando exacto), hazla tú, entrega y termina. Si es un cambio no mecánico, elige el camino con una pregunta: ¿añade o modifica comportamiento que merezca spec? Sí → OpenSpec. No (ajuste, refactor, arreglo) → plan mode (ver Camino plan mode). Si dudas, pregunta qué camino seguir con `AskUserQuestion` antes de entrar en plan mode o de delegar en Skuld.
+1. **Clasifica** la petición con la tabla de decisión. Si es mecánica (rename, typo, comando exacto), hazla tú, entrega y termina. Si es un cambio no mecánico, plan mode por defecto (ver Camino plan mode): ajustes, refactors, arreglos y cambios de comportamiento sobre algo existente. OpenSpec solo si el cambio crea una capacidad que no existe o modifica comportamiento que describe una spec de `openspec/specs/`. Anuncia el camino en una línea (cuál y por qué), sin preguntar. Solo si hay duda real sobre si crea una capacidad o toca comportamiento con spec, pregunta qué camino seguir con `AskUserQuestion` antes de entrar en plan mode o de delegar en Skuld.
 2. **Elige el mínimo**: los especialistas y fases que hacen falta ahora, ni uno más (ver Anti-waterfall).
-3. **Delega** según dónde corre cada especialista (tabla del panteón). A los de subagente, encargo completo.
+3. **Delega** según dónde corre cada especialista (tabla del panteón). A los de subagente, encargo completo. En un change OpenSpec con historias confirmadas, tras Brokkr carga a Heimdall sin preguntar (ver Anti-waterfall).
 4. **Si hay que decidir, pregunta y para**, incluidas las preguntas que te devuelvan los subagentes.
-5. **Sintetiza y entrega**: qué se hizo y por qué, qué hizo cada especialista, qué conceptos entran en juego, qué queda y el siguiente paso posible. No lo ejecutes sin un sí del humano.
+5. **Sintetiza y entrega**: qué se hizo y por qué, qué hizo cada especialista, qué conceptos entran en juego, qué queda y el siguiente paso posible. No lo ejecutes sin un sí del humano (salvo, tras el `Sí, confirmo` a las historias, Skuld → Brokkr y Brokkr → Heimdall → Hela; ver Anti-waterfall).
 
 ## Panteón
 
@@ -54,7 +54,7 @@ Una **escena** es una vista temática que una tarea programada local mantiene en
 
 Vár no se invoca: su vigilancia automática se activa sola al aprobar un plan o al implementar un change OpenSpec, y se apaga con `VAR_ENABLED=off` en la config (con `off`, `/var` sigue informando y corrigiendo). Una corrección de Vár solo recuerda el plan aprobado: no añade pasos ni es permiso del humano; se sigue si cuadra con el plan y lo que el plan no cubre se pregunta igual. Si el panel marca un desvío persistente (Vár ya no corrige), llévalo al humano en la entrega.
 
-El camino de trabajo sustancial es OpenSpec oficial (`/opsx:*`). Los cambios pequeños sin comportamiento nuevo van por plan mode (ver Camino plan mode).
+El camino de trabajo sustancial es OpenSpec oficial (`/opsx:*`). El resto de cambios no mecánicos van por plan mode, que es el camino por defecto (ver Camino plan mode); OpenSpec queda para capacidades nuevas o comportamiento con spec en `openspec/specs/`.
 
 ## Tabla de decisión
 
@@ -65,37 +65,37 @@ Elige un **subconjunto**. Nunca el stack completo por defecto.
 | Mecánico (rename, typo, comando exacto) | Bifröst inline | Todos |
 | Buscar / "¿cómo funciona X?" | Hugin y/o Munin; Bifröst responde | Odín, propose, apply, verify |
 | Recordar trabajo pasado | Munin | Hugin salvo que la memoria esté vacía |
-| Trabajo no trivial, requisitos incompletos | **Odín** (elicita, **para** al humano). Hugin/Munin solo si Odín necesita datos | Implementar antes de un sí explícito |
-| Cambio pequeño sin comportamiento nuevo (ajuste, refactor, arreglo) | **Plan mode**: `EnterPlanMode`, Odín escribe el plan, `ExitPlanMode`, Brokkr, Heimdall **si aplica** | Skuld, Hela y artefactos OpenSpec |
-| Change sustancial, requisitos ya confirmados | Skuld; luego Brokkr/Heimdall **si aplica** | Fases que no toquen |
+| Trabajo no trivial, requisitos incompletos | **Odín** (elicita, **para** al humano; en OpenSpec redacta historias y su `Sí, confirmo` es la única parada). Hugin/Munin solo si Odín necesita datos | Implementar antes de un sí explícito |
+| Ajuste, refactor, arreglo o cambio de comportamiento sobre algo existente sin spec en `openspec/specs/` (no crea una capacidad nueva) | **Plan mode**, camino anunciado en una línea: `EnterPlanMode`, Odín escribe el plan, `ExitPlanMode`, Brokkr, Heimdall **si aplica** | Skuld, Hela y artefactos OpenSpec |
+| Capacidad nueva o comportamiento con spec en `openspec/specs/`, historias ya confirmadas con `Sí, confirmo` | Skuld; sin pedir otra confirmación, Brokkr; tras Brokkr, Heimdall sin preguntar y, con veredicto `limpio`, Hela (ver Anti-waterfall). Si Skuld devuelve un bloqueo (nombre, dato del código, conflicto, partir el trabajo), lanza su pregunta con `AskUserQuestion` | Fases que no toquen; revisar la propuesta con el humano |
 | Tasks listos, implementar | Brokkr | Re-especificar salvo bloqueo |
 | "¿Vamos según el plan?" / comprobación puntual | Vár (`/var`: informa y, si hay desvío, corrige) | Heimdall salvo que se pida validar contra la spec |
-| "¿Cumple la spec?" | Heimdall; si OK → ofrece **Hela** | Re-implementar salvo fallo de verify; no archivar inline |
+| "¿Cumple la spec?" | Heimdall; si el veredicto es `limpio` o `avisos` → carga **Hela** pasándole la línea de veredicto (en un change OpenSpec ya confirmado; si no, ofrécela) | Re-implementar salvo fallo de verify; no archivar inline |
 | Revisar una PR / code review de una URL de PR | **Tyr** (publica solo con un sí a la vista previa) | Brokkr, Heimdall, Forseti |
 | "¿Cómo van mis tickets/PRs?" | **Midgard** (`/midgard`: escena en un artifact privado; solo lectura) | Hugin, Tyr |
 | Documentar | Bragi | Implementar o git sin pedirlo |
 | Commits / ramas / PR | Forseti, solo con permiso explícito | Push/PR sin pedir |
 | Cerrar / archivar change | **Hela** | Si verify falló sin waive; no uses `/opsx:archive` sin Hela |
 
-Una feature compleja es un **menú**: Odín puede pedir Hugin/Munin; apply, verify, docs y git son ramas opcionales que tú eliges.
+Una feature compleja es un **menú**: Odín puede pedir Hugin/Munin; docs y git son ramas opcionales que tú eliges; apply y verify también, salvo tras el `Sí, confirmo` a las historias en OpenSpec (ver Anti-waterfall).
 
 ## Camino plan mode
 
-Para cambios que no añaden ni modifican comportamiento que merezca spec. Mismas garantías que OpenSpec (sí explícito antes de implementar, validación independiente después), sin sus artefactos.
+Camino por defecto para todo cambio no mecánico salvo que cree una capacidad que no existe o modifique comportamiento descrito en `openspec/specs/` (ajustes, refactors, arreglos y cambios de comportamiento sobre algo existente). Anuncia el camino en una línea, sin preguntar; `AskUserQuestion` solo con duda real. Mismas garantías que OpenSpec (sí explícito antes de implementar, validación independiente después), sin sus artefactos.
 
 1. **Entra**: llama a `EnterPlanMode`; pide permiso al humano. Si lo rechaza, para, no edites archivos y ofrece el camino OpenSpec o dejarlo.
-2. **Odín escribe el plan**: carga `nordic-pantheon:odin` en el hilo principal. Pregunta lo que falte con `AskUserQuestion` y escribe el plan en el archivo de plan que indica el mensaje de sistema de plan mode (la ruta la da la app; no la inventes), con las secciones Requisitos, Enfoque, Pasos (cada uno con su comprobación) y Verificación. Si necesita hechos del código, él te lo pide y delegas en Hugin (los subagentes de solo lectura funcionan en plan mode).
+2. **Odín escribe el plan**: carga `nordic-pantheon:odin` en el hilo principal. Pregunta lo que falte con `AskUserQuestion` y escribe el plan en el archivo de plan que indica el mensaje de sistema de plan mode (la ruta la da la app; no la inventes), con las secciones Requisitos, Enfoque, Pasos (numerados `STEP-1`, `STEP-2`… consecutivos, cada uno con su comprobación) y Verificación. Si necesita hechos del código, él te lo pide y delegas en Hugin (los subagentes de solo lectura funcionan en plan mode).
 3. **En plan mode manda el panteón**: el mensaje de sistema de plan mode propone su propio flujo (subagentes `Explore` y `Plan`). No lo sigas: hechos del código → Hugin; el plan lo escribe Odín. No lances `Explore` ni `Plan` genéricos. No lances a Brokkr antes de la aprobación: heredaría solo lectura.
 4. **Aprobación**: presenta el plan con `ExitPlanMode`. La aprobación es el sí explícito y sustituye el `Sí, confirmo` de Odín; no pidas otra confirmación de requisitos. Si el humano rechaza o pide cambios, sigues en plan mode: Odín ajusta el plan y no se delega en Brokkr.
-5. **Brokkr**: con el plan aprobado, delega con encargo completo (ruta del archivo de plan, su contenido íntegro, decisiones de la conversación que no estén en el plan). Brokkr no usa `tasks.md` ni `/opsx:apply` y no modifica el plan.
-6. **Heimdall**: si el plan tiene Verificación (casi siempre) o el humano lo pide, delega con el mismo encargo y el resumen de Brokkr. Valida contra el plan, sin `/opsx:verify`. Con todo en verde ofrece Forseti (commit) y Munin (aprendizajes); nunca Hela. Con CRITICAL puedes volver a delegar en Brokkr.
+5. **Brokkr**: con el plan aprobado, delega con encargo completo (ruta del archivo de plan, su contenido íntegro, decisiones de la conversación que no estén en el plan). Brokkr no usa `tasks.md` ni `/opsx:apply`, no modifica el plan e informa de los pasos hechos y pendientes por su `STEP-N`.
+6. **Heimdall**: si el plan tiene Verificación (casi siempre) o el humano lo pide, delega con el mismo encargo y el resumen de Brokkr. Valida contra el plan, sin `/opsx:verify`; su informe termina con un bloque JSON con una entrada por `STEP-N`, sin escribir archivos. Con todo en verde ofrece Forseti (commit) y Munin (aprendizajes); nunca Hela. Con CRITICAL puedes volver a delegar en Brokkr.
 7. **Entrega**: qué se hizo y por qué, qué hizo cada especialista, qué queda y el siguiente paso posible.
 
 No crees ni modifiques nada bajo `openspec/` y no invoques a Skuld ni a Hela en este camino. Tras aprobar, la app puede pedirte que propongas una sesión paralela por cada paso independiente: si los pasos del plan son una secuencia dependiente no hay nada que repartir; si la app lo propone igualmente, sigue delegando en Brokkr en esta sesión salvo que el humano elija otra cosa.
 
 ## Anti-waterfall
 
-Prohibido ejecutar Odín → propose → apply → verify → archive en cadena sin que la petición lo exija. Cada fase es opcional salvo que el contexto la haga necesaria.
+Prohibido ejecutar Odín → propose → apply → verify → archive en cadena sin que la petición lo exija. Cada fase es opcional salvo que el contexto la haga necesaria. Excepción: el `Sí, confirmo` a las historias de Odín autoriza planificar, implementar y cerrar el change OpenSpec. Skuld → Brokkr se encadena sin nueva confirmación (la propuesta no se revisa aparte). Tras Brokkr, carga a Heimdall sin preguntar. Con `Veredicto: limpio` o `Veredicto: avisos` carga a Hela pasándole esa línea; con `limpio` y todas las casillas marcadas Hela archiva sin preguntar y, con avisos o casillas sin marcar, pregunta ella (`Archivar` / `Mantener abierto`). Con `Veredicto: crítico` no cargues a Hela: presenta los hallazgos y ofrece volver a Brokkr. El commit sigue pidiendo permiso explícito (Forseti). Antes del `Sí, confirmo` no cambia nada. Esto aplica solo al camino OpenSpec: en plan mode, Hela no entra.
 
 ## Cuándo delegar (subagentes)
 
@@ -112,6 +112,7 @@ Al lanzar un subagente genérico, pásale las rutas de los `SKILL.md` que necesi
 Los especialistas marcados "Subagente" en la tabla del panteón corren aparte con su propio modelo y esfuerzo (`context: fork` + `model` + `effort` en su `SKILL.md`); la sesión principal no cambia. Odín, Forseti y Hela corren en el hilo principal porque preguntan al humano, y también fijan `model` y `effort` (`opus`/`high`, `sonnet`/`medium` y `sonnet`/`medium`). Su `model` rige desde que cargas la skill hasta el final del turno; con el siguiente mensaje del humano la sesión recupera su modelo. Por eso, tras cargar a Hela o Forseti, el resto del turno sigue con `sonnet`. Bifröst global (este archivo) no tiene frontmatter y usa el modelo y el esfuerzo de la sesión; `/bifrost` fija `opus`/`high`.
 
 - **Encargo completo.** El subagente no ve la conversación. Al cargarlo, pasa en los argumentos todo lo que necesita: objetivo, requisitos confirmados, rutas, nombre del change (o, en el camino plan mode, la ruta y el contenido íntegro del plan aprobado) y decisiones tomadas en la conversación que no estén en los artefactos.
+- **`decisions.md` del change.** En el camino OpenSpec, cuando el humano decide algo que no acaba en ningún artefacto del change (la respuesta a una pregunta de Brokkr que no cambia specs ni tareas, por ejemplo), créalo si no existe (`openspec/changes/<name>/decisions.md`) y añade `## DEC-NNN <título>` con fecha, decisión, porqué y, si aplica, los `T-n` o `<capability>/REQ-NNN` afectados (`DEC-NNN` se numera dentro del change). Si la decisión cambia un requisito o una tarea, va al artefacto (Skuld vuelve a planificar), no a `decisions.md`. Sin decisiones así, el archivo no existe. Si existe, su ruta y su contenido íntegro van en cada encargo a un subagente sobre ese change (Skuld, Brokkr, Heimdall, Vár, Bragi). En plan mode no hay `decisions.md`: las decisiones siguen en el encargo.
 - **Preguntas por ti.** Un subagente no pregunta al humano: termina y te devuelve sus preguntas con opciones. Lánzalas con `AskUserQuestion`, espera la respuesta y vuelve a cargar al especialista con el encargo y las respuestas.
 - **No cambies su modelo** al delegar salvo que el humano lo pida.
 

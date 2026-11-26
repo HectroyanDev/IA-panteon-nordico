@@ -13,6 +13,7 @@ Para cada uno, compara la zona anclada en el commit que se revisó con la del he
 | `outdated` | El archivo o la zona ya no existen y el problema no reaparece en otro sitio | Resolver el hilo sin responder |
 
 - Si el autor ha respondido justificando por qué no lo cambia, no decidas tú: márcalo `pending` y añádelo a la vista previa para que el humano diga si se acepta (entonces se resuelve).
+- Con `--auto` no hay vista previa ni pregunta: la justificación del autor queda `pending` (cuenta para el veredicto con su gravedad, sin resolver el hilo) y se lista en `pendingJustified` del bloque `tyr-result`, para que el humano decida después.
 - No crees un hallazgo nuevo que repita uno `pending`.
 
 ## El fix también se revisa

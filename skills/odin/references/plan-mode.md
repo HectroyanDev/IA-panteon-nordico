@@ -39,8 +39,8 @@ Do not implement, run `/opsx:*`, or write code. Writing the plan file is the onl
 <what is touched and why; facts from Hugin cited with file paths; open gaps marked as unknown>
 
 ## Pasos
-- [ ] 1. <step> — se comprueba con <command or observation>
-- [ ] 2. <step> — se comprueba con <command or observation>
+- [ ] STEP-1 <step> — se comprueba con <command or observation>
+- [ ] STEP-2 <step> — se comprueba con <command or observation>
 
 ## Verificación
 - <command or observation Heimdall will run after Brokkr, one per line>
@@ -49,6 +49,7 @@ Do not implement, run `/opsx:*`, or write code. Writing the plan file is the onl
 Rules for the template:
 
 - Keep the four section names exactly (`Requisitos`, `Enfoque`, `Pasos`, `Verificación`): Brokkr and Heimdall look for them.
+- Number the steps `STEP-1`, `STEP-2`… consecutively, no gaps. Brokkr reports done and pending steps by `STEP-N`, Heimdall validates one entry per `STEP-N`, and Vár uses it as `ref`. Plan mode still writes no JSON file and nothing under `openspec/`.
 - Steps are an ordered, dependent sequence unless one is really independent; write them small enough for one Brokkr pass.
 - `Verificación` lists only checks that can run without the human (tests, `grep`, diffs, commands). If a check needs the human, say so there.
 - No step may require a decision the plan does not make. If one does, it is an Unknown: ask before writing.

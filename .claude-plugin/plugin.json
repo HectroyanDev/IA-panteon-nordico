@@ -1,7 +1,7 @@
 {
   "name": "nordic-pantheon",
-  "version": "1.7.0",
-  "description": "Panteón nórdico de Héctor: Odín, Hugin (o Hugin-graphify), Munin (backends mimir o memory), Skuld, Brokkr, Heimdall, Vár (vigilancia del plan), Bragi, Forseti, Hela y la escena Midgard (tus tickets y PRs en un artifact privado), orquestados por Bifröst.",
+  "version": "1.9.0",
+  "description": "Panteón nórdico de Héctor: Odín, Hugin (o Hugin-graphify), Munin (backends mimir o memory), Skuld, Brokkr, Heimdall, Vár (vigilancia del plan), Bragi, Forseti, Hela y la escena Midgard (tus tickets y PRs en un artifact privado), orquestados por Bifröst, con contratos de traspaso verificables (IDs de requisitos y tareas, drift.json y decisions.md).",
   "author": {
     "name": "hectorgonzalez"
   },

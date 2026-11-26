@@ -27,7 +27,7 @@ Instala en modo `link`, con Munin sobre Mimisbrunnr y Bifröst como orquestador 
 | Bragi | Documentar | `nordic-pantheon:bragi` | Subagente, `sonnet`, `medium` |
 | Forseti | Commits, ramas, PRs | `nordic-pantheon:forseti` | Hilo principal, `sonnet`, `medium` |
 | Hela | Cerrar un change completado | `nordic-pantheon:hela` | Hilo principal, `sonnet`, `medium` |
-| Tyr | Revisar PRs de GitHub y Bitbucket con comentarios inline | `nordic-pantheon:tyr` | Hilo principal (lentes en subagentes paralelos), `opus`, `high` |
+| Tyr | Revisar PRs de GitHub y Bitbucket con comentarios inline; `--auto` publica sin vista previa y `nightly` revisa en lote las PRs pendientes con informe a Slack | `nordic-pantheon:tyr` | Hilo principal (lentes en subagentes paralelos), `opus`, `high` |
 | Midgard | Escena: tus tickets de Jira en curso y sus PRs, en un artifact privado siempre en la misma URL | `nordic-pantheon:midgard` | Hilo principal, `sonnet`, `medium`; refresco por tarea programada local |
 
 Bifröst delega la exploración en `hugin` o `hugin-graphify` según `HUGIN_BACKEND` (ver "Cambiar el backend de Hugin").
@@ -39,6 +39,7 @@ Odín, Forseti y Hela corren en el hilo principal porque preguntan al humano o p
 | Dependencia | Obligatoria | Para qué |
 | --- | --- | --- |
 | CLI `claude` | Sí | Sin ella el instalador aborta |
+| `bun` | Solo para los contratos de traspaso | `scripts/protocol.ts` (`ids`, `check`); también `scripts/token-report.ts`. Sin él, Skuld no puede comprobar `check`. Ver "Contratos de traspaso" |
 | `openspec` 1.14.x | No | `/opsx:*` (Skuld, Brokkr, Heimdall, Hela). Si falta, aviso |
 | `uv` o `pipx` | Solo con `--hugin=graphify` | Instalan la CLI de graphify (`graphifyy`, Python 3.10+). Sin ninguno, aviso y Hugin se queda en `plain`. Si `graphify` ya está en el `PATH`, no hacen falta |
 | MCP `mimisbrunnr` | Solo con `--munin=mimir` | Memoria de Munin-mimir. Si falta en la CLI, el instalador ofrece instalarlo (opcional, ver "Instalar Mimisbrunnr"). La app de escritorio y la CLI tienen configs de MCP distintas: si solo está en la app, en sesiones de la CLI Munin-mimir no tendrá memoria |
@@ -207,7 +208,7 @@ En modo `link` el cambio vale en la siguiente sesión; en modo `marketplace`, tr
 
 ## Camino plan mode
 
-Para cambios que no añaden ni modifican comportamiento que merezca spec (un ajuste, un refactor, un arreglo). Bifröst lo elige con una pregunta: ¿el cambio añade o modifica comportamiento que merezca spec? Si sí, OpenSpec; si no, plan mode; si duda, te pregunta. Las tareas mecánicas siguen resolviéndose sin más.
+Es el camino por defecto para todo cambio no mecánico: ajustes, refactors, arreglos y cambios de comportamiento sobre algo existente. OpenSpec solo entra si el cambio crea una capacidad que no existe o modifica comportamiento que describe una spec de `openspec/specs/`. Bifröst anuncia el camino en una línea (cuál y por qué), sin preguntar; solo si duda de verdad, te pregunta. Las tareas mecánicas siguen resolviéndose sin más.
 
 Flujo:
 
@@ -223,6 +224,38 @@ El archivo de plan lo da el mensaje de sistema de plan mode: hoy es `~/.claude/p
 
 Tras aprobar, la app puede proponer una sesión paralela por cada paso independiente del plan. Bifröst sigue delegando en Brokkr en esta sesión salvo que elijas otra cosa.
 
+## Cierre encadenado (camino OpenSpec)
+
+Tras tu `Sí, confirmo` a las historias, Bifröst encadena Skuld, Brokkr y Heimdall sin preguntar. Heimdall termina su informe con `Veredicto: limpio | avisos | crítico`. Con `limpio` (cero CRITICAL y cero WARNING) y todas las casillas de `tasks.md` marcadas, Hela archiva sin preguntar e informa. Con `avisos` o casillas sin marcar (también las de pruebas manuales), Hela te pregunta `Archivar` o `Mantener abierto`. Con `crítico`, Bifröst te presenta los hallazgos y ofrece volver a Brokkr. Si `proposal.md`, `design.md` o `decisions.md` dicen `Orden de archivo: X antes que este change` y X sigue abierto, Hela no archiva y avisa. El commit sigue necesitando tu permiso.
+
+## Contratos de traspaso
+
+Los especialistas se pasan el trabajo con formatos fijos que una máquina puede comprobar, para medir cada fase contra criterios concretos y trazables. Aplican al camino OpenSpec; el plan mode solo añade `STEP-N` y no escribe archivos. El detalle normativo está en la capability `pantheon-handoff-contracts` del change `add-bifrost-protocol`.
+
+| Contrato | Quién lo escribe | Dónde | Qué es |
+| --- | --- | --- | --- |
+| `REQ-NNN` | Skuld | Título de cada `### Requirement:` de una spec, escrito como historia ("Como… quiero… para…" con 3–5 escenarios; 1–3 por change, ~150 líneas como guía) | ID estable y único dentro de su capability; se cita como `<capability>/REQ-NNN`. Un requisito nuevo toma el siguiente libre (`ids --next`); renombrar conserva el número y un número eliminado no se reutiliza |
+| `tasks.md` | Skuld | `openspec/changes/<name>/tasks.md` | Escrito a mano, sin grafo de dependencias. Cada casilla es `- [ ] N.M T-n título. Verificación: … Cubre: <capability>/REQ-NNN, …`; el orden de las tareas es el de trabajo |
+| `drift.json` | Vár (módulo) | `openspec/changes/<name>/drift.json` | Registro de veredictos de Vár del change (hora, origen `auto` o `manual`, hilo, veredicto, `ref`, paso, motivo, corrección, persistencia). Solo se añade; en plan mode no se escribe |
+| `decisions.md` | Bifröst | `openspec/changes/<name>/decisions.md` | Solo las decisiones del humano que no quedan en ningún artefacto (`## DEC-NNN`). Sin decisiones así, no existe. Bifröst pasa su ruta y contenido en cada encargo sobre el change |
+| `STEP-N` | Odín | Sección Pasos del plan de plan mode | Pasos numerados; Brokkr informa por `STEP-N` y Heimdall cierra su informe con un bloque JSON por `STEP-N`, sin escribir archivos |
+
+`drift.json` lleva `"schema_version": 1`. Quien lea otra versión (o ninguna) lo trata como ausente y avisa. Heimdall no escribe archivos en el camino OpenSpec: informa de cada historia frente a sus criterios.
+
+**`scripts/protocol.ts`.** Comprueba estos archivos. Se ejecuta con `bun` desde la raíz del repo del proyecto (la carpeta que contiene `openspec/`; `--root <dir>` apunta a otra):
+
+```bash
+bun scripts/protocol.ts ids                              # forma REQ-NNN y unicidad en specs y changes abiertos
+bun scripts/protocol.ts ids --next pantheon-evals        # siguiente ID libre de una capability
+bun scripts/protocol.ts check add-bifrost-protocol       # T-n únicos en tasks.md y requisitos cubiertos
+```
+
+`ids` trabaja sobre `openspec/specs/` con los RENAMED de los changes abiertos ya aplicados, así que una migración pendiente no da falsos fallos. `check` lista cada fallo (`T-n` repetido, tarea que cubre un requisito ajeno al change, requisito ADDED o MODIFIED sin tarea, `tasks.md` ausente) y sale con código 1.
+
+**Dependencia de `bun`.** `scripts/protocol.ts` necesita `bun`. Sin él, Skuld escribe `tasks.md` igualmente y avisa de que no pudo ejecutar `check`. Los changes en formato anterior siguen funcionando y no se reescriben.
+
+**Orden de archivo.** `add-var-drift-watcher` se archiva antes que `add-bifrost-protocol`: su MODIFIED de "Configuración persistida" usa el título original, que este change renombra a `REQ-006 Configuración persistida`.
+
 ## Vár: vigilancia del plan
 
 Vár comprueba en segundo plano que el trabajo (el hilo principal y los subagentes) no se desvíe del plan que aprobaste, y reconduce sin esperarte. Son dos piezas: el módulo `hooks/var.tsx` (la vigilancia automática) y la skill `/var` (la comprobación puntual).
@@ -232,6 +265,8 @@ Vár comprueba en segundo plano que el trabajo (el hilo principal y los subagent
 **Cuándo juzga.** Cuando pasan `VAR_MINUTES` minutos o se hacen `VAR_TOOL_CALLS` llamadas a herramientas (suma de todos los hilos), lo primero que ocurra; después la ventana empieza de nuevo. Una tarea corta no dispara ningún juicio. Cada juicio usa `opus`/`high` sobre el plan y las llamadas de cada hilo (sin resultados de herramientas) y da `alineado`, `menor` o `desvío` por hilo. El criterio está en `skills/var/references/judge.md`.
 
 **Qué hace con un desvío.** Inyecta en el hilo que se desvió una corrección con plantilla fija (paso que toca y qué dejar de hacer), sin pararlo ni esperarte; un subagente ya terminado se corrige a través del hilo principal. Una corrección solo recuerda el plan: no añade pasos ni autoriza nada. Tras dos correcciones, el siguiente desvío del hilo queda como persistente: no se corrige más y te lo notifica. `menor` solo se registra.
+
+**`ref` y `drift.json`.** Cada veredicto lleva `ref`: el `T-n` de la tarea afectada si `tasks.md` las tiene, el `<capability>/REQ-NNN` si no, o el `STEP-N` en plan mode; vacío si no hay referencia identificable. El juez recibe las tareas de `tasks.md` con su casilla; el orden de las tareas es libre y marcar una antes que otra no es un desvío. En el camino OpenSpec cada veredicto (automático o de `/var`) se añade a `openspec/changes/<name>/drift.json` sin reescribir las entradas previas; funciona también con `VAR_ENABLED=off` para `/var`, no escribe nada en plan mode, y un fallo de escritura o un `drift.json` de otra `schema_version` (que no se sobrescribe) deja un aviso en el panel. Pendiente de comprobar en la app de escritorio: que `$.fs.write` del módulo no pida permiso (tarea T-11 del change `add-bifrost-protocol`).
 
 | Clave | Valores | Por defecto | Efecto |
 | --- | --- | --- | --- |
@@ -243,7 +278,7 @@ Rigen desde la siguiente activación de plan. Un valor no válido vuelve al valo
 
 **`/var`.** Comprobación puntual contra el plan activo: informa del veredicto por hilo y, si hay `desvío`, corrige por la misma vía que la vigilancia automática (misma plantilla, mismo límite de correcciones, mismo registro y notificación). Funciona también con `VAR_ENABLED=off`. Sin plan, responde que no hay plan que vigilar. No ejecuta tests ni valida contra la spec (eso es Heimdall) ni edita nada.
 
-**Panel y notificación.** Al activarse un plan con `VAR_ENABLED=on` se abre el panel lateral de Vár (plan, contadores `n/VAR_TOOL_CALLS llamadas · m/VAR_MINUTES min`, último juicio y registro con cada desvío y su corrección destacados, con su origen `auto` o `/var`). `/var-panel` lo abre a mano, también con `off`. Si la superficie no coloca paneles queda un resumen en la línea de estado. Cada `desvío` y cada desvío persistente genera una notificación del sistema (`$.ui.notify`; si la app no la envía, `notify-send` en Linux u `osascript` en macOS). El registro es solo de la sesión: no se guarda entre sesiones ni en Munin.
+**Panel y notificación.** Al activarse un plan con `VAR_ENABLED=on` se abre el panel lateral de Vár (plan, contadores `n/VAR_TOOL_CALLS llamadas · m/VAR_MINUTES min`, último juicio y registro con cada desvío y su corrección destacados, con su origen `auto` o `/var` y su `ref`). `/var-panel` lo abre a mano, también con `off`. Si la superficie no coloca paneles queda un resumen en la línea de estado. Cada `desvío` y cada desvío persistente genera una notificación del sistema (`$.ui.notify`; si la app no la envía, `notify-send` en Linux u `osascript` en macOS). El registro es solo de la sesión: no se guarda entre sesiones ni en Munin.
 
 **Versión de Claude Code.** El módulo usa la API de mods (acceso anticipado, cambia entre versiones), escrita contra los tipos de la 2.1.309 que trae la app de escritorio. La CLI 2.1.301 no se ha comprobado. Las comprobaciones en vivo (carga del módulo en modo `link` y `marketplace`, señal de plan rechazado, inyección en subagentes `fork`, notificación en la app) están pendientes: ver las tareas 1.1 a 1.5 y 8.x del change `add-var-drift-watcher`. Sin el módulo (sin `hooks/` o sin esa API) `/var` solo informa y avisa de que no pudo corregir. Los hooks de `skill.prompt` (respaldo para `/opsx:apply` y `/opsx:verify` escritos a mano) no corren en un plugin instalado bajo una organización que gestiona Claude Code.
 
@@ -263,13 +298,13 @@ Una escena es una vista temática que una tarea programada local mantiene al dí
 
 **Requisitos.** `gh` con sesión en `github.com`, el MCP de Atlassian conectado (Jira y Bitbucket) y la app de escritorio abierta. `node` 22 o posterior.
 
-**Qué muestra.** Seis cifras (tickets en curso, PRs abiertas, esperando revisión, cambios pedidos, estancadas, avisos Jira ↔ repo); un panel por repositorio (derivado de las PRs, sin lista que configurar) con ticket, estado de Jira, PR, revisión y días quieta; y el bloque "Sin PR". Un ticket se enlaza a una PR cuando su clave aparece como palabra completa en la rama o el título. Solo cuentan las PRs de las que eres autor: abiertas y mergeadas o cerradas sin merge en los últimos 90 días (un ticket cuya única PR se mergeó hace más tiempo aparece en "Sin PR").
+**Qué muestra.** Seis cifras (tickets en curso, PRs abiertas, esperando revisión, cambios pedidos, estancadas, avisos Jira ↔ repo); un panel por repositorio (derivado de las PRs, sin lista que configurar) con ticket, estado de Jira, PR, revisión y días quieta; el bloque "Sin PR"; y al final el panel "Mergeados en dev", plegado, con los tickets cuyo estado cuenta como mergeado en dev (ver abajo). Un ticket se enlaza a una PR cuando su clave aparece como palabra completa en la rama o el título. Solo cuentan las PRs de las que eres autor: abiertas y mergeadas o cerradas sin merge en los últimos 90 días (un ticket cuya única PR se mergeó hace más tiempo aparece en "Sin PR").
 
 **Avisos Jira ↔ repo.** Solo avisan; nunca cambian el ticket. (1) El ticket no está "mergeado en dev" y tiene al menos una PR mergeada y ninguna abierta (las cerradas sin merge no cuentan). (2) Está en un estado de revisión (por defecto `Under Review` o `En Revisión`) y no tiene PR abierta. La lista está en `jiraReviewStatuses` de `scene.json`: comparación por nombre completo sin distinguir mayúsculas, clave ausente → lista por defecto, `[]` → sin aviso (2); edita ese archivo para añadir otro estado de revisión. (3) Está en una categoría To Do (To Do, Backlog) y tiene una PR abierta. Si GitHub o Bitbucket fallan sin datos previos, los avisos (1) y (2) y la pertenencia a "Sin PR" se marcan "incompleto" con el nombre de la fuente.
 
-**Estancado.** Una PR abierta o un ticket de "Sin PR" con 5 o más días laborables sin movimiento (lunes a viernes, hora de tu máquina, sin festivos). El movimiento de una PR es su último commit, revisión, comentario o cambio de estado; el de un ticket, su última actualización en Jira (un comentario cuenta).
+**Estancado.** Una PR abierta o un ticket sin PR (esté en "Sin PR" o en "Mergeados en dev") con 5 o más días laborables sin movimiento (lunes a viernes, hora de tu máquina, sin festivos). El movimiento de una PR es su último commit, revisión, comentario o cambio de estado; el de un ticket, su última actualización en Jira (un comentario cuenta).
 
-**Tickets "mergeado en dev".** En `casfidtech`, `Done (Merged in Dev)` es de categoría En curso: el ticket sigue en la página, con la etiqueta "mergeado en dev", y no da el aviso (1). Los nombres de estado que cuentan están en `jiraMergedStatuses` de `scene.json` (por defecto `["Done (Merged in Dev)"]`; comparación por nombre completo sin distinguir mayúsculas; `[]` lo desactiva). Edita ese archivo para añadir otro estado equivalente.
+**Tickets "mergeado en dev".** En `casfidtech`, `Done (Merged in Dev)` es de categoría En curso: el ticket sigue contando en las seis cifras, pero sale de los paneles por repositorio y de "Sin PR" y va al panel "Mergeados en dev": una lista compacta (clave enlazada a Jira, título, repositorios y enlace a cada PR con su estado), plegada al cargar la página, que se abre con un clic o con Enter o Espacio. Su cabecera muestra el total aunque esté plegado y, si los hay, cuántos estancados y cuántos avisos contiene, para que cada cifra de arriba tenga un motivo visible; al abrirla, cada fila indica su estancamiento y su aviso. Sin tickets así, el panel no aparece. No da el aviso (1); sí los avisos (2) y (3). Los nombres de estado que cuentan están en `jiraMergedStatuses` de `scene.json` (por defecto `["Done (Merged in Dev)"]`; comparación por nombre completo sin distinguir mayúsculas; `[]` lo desactiva). Edita ese archivo para añadir otro estado equivalente.
 
 **Bitbucket.** El workspace está en `bitbucketWorkspace` de `scene.json` (hoy `casfidIdasfest`, con "I" mayúscula); las PRs de otros workspaces no aparecen. Bitbucket no da las aprobaciones requeridas ni los hilos sin resolver: la revisión muestra `N aprob.` sin denominador y sin dato de comentarios. Una PR de Bitbucket cuenta como "Lista para merge" con al menos una aprobación y ningún cambio pedido, aunque queden revisores pendientes.
 
@@ -288,7 +323,9 @@ Una escena es una vista temática que una tarea programada local mantiene al dí
 | `odin-incomplete` | Con requisitos incompletos, Odín pregunta y no propone implementar |
 | `bifrost-no-waterfall` | Bifröst carga a Odín y no encadena Skuld, Brokkr, Heimdall ni Hela |
 | `bifrost-lookup` | Una pregunta sobre el código va a Hugin, sin Odín ni fases de planificación |
-| `bifrost-plan-mode-route` | Un refactor sin comportamiento nuevo va a plan mode, no a OpenSpec |
+| `bifrost-plan-mode-route` | Un refactor sin comportamiento nuevo va a plan mode, no a OpenSpec, y el camino se anuncia sin preguntar |
+| `bifrost-plan-mode-behavior` | Un cambio de comportamiento sobre algo existente sin spec va a plan mode, sin Skuld ni `/opsx:propose`. Limitada: el sandbox de evals no ofrece `EnterPlanMode` ni `AskUserQuestion`, y el resultado varía entre ejecuciones (ver DEC-001 de `streamline-close-and-path`) |
+| `bifrost-close-chain` | Con el resumen de Brokkr de un change confirmado, Bifröst carga a Heimdall sin preguntar |
 | `skuld-no-name` | Sin nombre de change, Skuld devuelve candidatos y no crea artefactos |
 | `brokkr-no-change` | Sin change ni plan, Brokkr devuelve la pregunta y no escribe código |
 | `munin-mimir-empty` | Con un Mimir simulado vacío, Munin dice que no hay recuerdos y no inventa |
@@ -369,18 +406,30 @@ Nuevo especialista Vár (`nordic-pantheon:var` y el módulo de hooks `hooks/var.
 
 Nueva escena Midgard (`nordic-pantheon:midgard`): artifact privado con tus tickets de Jira en curso y sus PRs de GitHub y Bitbucket, refrescado por una tarea programada local; contrato común de escenas en `skills/_shared/scenes.md`. Sin cambios incompatibles. Ver "Escenas".
 
+## Cambios en 1.8.0
+
+Contratos de traspaso entre especialistas: IDs `REQ-NNN` en los requisitos (escritos como historias), `T-n` en `tasks.md`, `drift.json` y `ref` en los veredictos de Vár, `decisions.md` de Bifröst y pasos `STEP-N` en plan mode; `scripts/protocol.ts` los comprueba y necesita `bun`. Los changes en formato anterior siguen funcionando. Ver "Contratos de traspaso".
+
+## Cambios en 1.9.0
+
+Plan mode pasa a ser el camino por defecto para los cambios no mecánicos (OpenSpec solo para capacidades nuevas o comportamiento con spec en `openspec/specs/`), y Bifröst anuncia el camino en una línea sin preguntar. En el flujo OpenSpec, tras el `Sí, confirmo` el cierre se encadena: Brokkr, Heimdall sin preguntar y, con `Veredicto: limpio` (sin CRITICAL ni WARNING) y todas las casillas de `tasks.md` marcadas, Hela archiva sin preguntar; con avisos o casillas pendientes, Hela pregunta; con CRITICAL se vuelve a Brokkr. Hela no archiva si el change declara otro que debe archivarse antes. El commit sigue pidiendo permiso. Heimdall cierra su informe OpenSpec con la línea `Veredicto:`. Cambia el comportamiento por defecto: ya no se te pregunta entre plan mode y OpenSpec, y un change limpio se archiva solo.
+
 ## Pruebas
 
 ```bash
 bash tests/install_test.sh
 bash tests/evals_test.sh
+bash tests/protocol_test.sh
 node --test tests/midgard/*.test.mjs
+node --test tests/tyr/*.test.mjs
 claude plugin validate .
 claude plugin test .
 tsc -p .
 ```
 
 `claude plugin test .` ejecuta `hooks/var.test.tsx` (reloj y `model.complete` simulados, sin llamadas reales). `tsc -p .` comprueba los tipos del módulo con los tipos que el motor deja en `.claude-plugin/types/` al cargar el mod (ignorados por git).
+
+`protocol_test.sh` prueba `scripts/protocol.ts` (IDs y `check` sobre `tasks.md`) sobre `tests/fixtures/protocol/`, un `openspec/` de juguete por caso, sin red ni modelo. Necesita `bun`.
 
 `install_test.sh` ejecuta el instalador con `HOME` temporal y `claude`, `uv`, `pipx`, `graphify`, `git` y `go` falsos, con un `PATH` sin los reales; no toca tu instalación.
 

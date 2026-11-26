@@ -35,6 +35,7 @@ No los uses, ni traducidos:
 - Un subagente no pregunta al humano: no tiene `AskUserQuestion`. Si falta un dato que bloquea, termina y devuelve a Bifröst la pregunta con 2–4 opciones concretas y su porqué (por qué bloquea y qué cambia según la opción).
 - Bifröst lanza esa pregunta con `AskUserQuestion`, espera la respuesta y vuelve a delegar con el encargo y las respuestas.
 - El encargo al subagente es completo: objetivo, requisitos confirmados, rutas, decisiones ya tomadas y, en el camino plan mode, la ruta y el contenido íntegro del plan aprobado. El subagente no ve la conversación.
+- Si el change tiene `openspec/changes/<name>/decisions.md` (decisiones del humano que no están en ningún artefacto, `DEC-NNN`), el encargo incluye su ruta y su contenido íntegro. Bifröst lo crea solo cuando hay una decisión así y lo reserva para el camino OpenSpec; en plan mode las decisiones van en el encargo. Un especialista que recibe `decisions.md` lo trata como parte del encargo, no lo edita.
 
 ## Formato de entrega
 

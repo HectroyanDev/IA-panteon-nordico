@@ -42,17 +42,17 @@ Do not use for: validating against acceptance criteria or running tests (Heimdal
 2. Resolve the plan: the brief (plan path, plan text, change name → `openspec/changes/<name>/tasks.md`), else call `mcp__nordic-pantheon__var_status`. No plan anywhere: answer "no hay plan que vigilar" and stop.
 3. Read the plan (and `proposal.md`/`design.md` for OpenSpec). Get the threads to judge from `var_status` (`main` and each `agentId` with activity); without it, judge one thread `main`.
 4. Look at the work: `var_status` buffers (tool, path, command per thread), `git status`/`git diff` for what changed, and files the plan names. Do not run tests.
-5. Produce one verdict per thread in the JSON format of `judge.md`.
-6. Call `mcp__nordic-pantheon__var_report` with `{ "threads": [...], "lang": "es" | "en" }` with ALL verdicts (also `alineado` and `menor`), `lang` set to the language of the plan (the module writes the correction in it), and the plan path if known. Read what it answers: what was injected and by which route.
+5. Produce one verdict per thread in the JSON format of `judge.md`, each with its `ref`: the `T-n` of the affected task if `tasks.md` has them (with its checkbox state), else the `<capability>/REQ-NNN` of the affected requirement (read the delta specs of the change), or the `STEP-N` in plan mode; empty if none can be identified. The order of the tasks is free: ticking one before another is not `desvío` by itself.
+6. Call `mcp__nordic-pantheon__var_report` with `{ "threads": [...], "lang": "es" | "en" }` (each thread with `ref`) with ALL verdicts (also `alineado` and `menor`), `lang` set to the language of the plan (the module writes the correction in it), and the plan path if known. Read what it answers: what was injected and by which route.
 7. Report.
 
 ## Output Contract
 
 Return to Bifröst, in the human's language:
-- Verdict per thread (`alineado` / `menor` / `desvío`), plan step affected and reason.
+- Verdict per thread (`alineado` / `menor` / `desvío`), `ref` (`T-n`, `<capability>/REQ-NNN` or `STEP-N`), plan step affected and reason.
 - What `var_report` said was sent (or "corrección no aplicada: módulo de Vár no disponible"), and whether a thread is `persistente`.
 - Suggested next step (continue, ask Brokkr to return to the step, Heimdall if validation is wanted).
-- As the last thing, a fenced `json` block with `{ "lang", "threads": [ { "thread", "verdict", "planStep", "reason", "correction" } ] }` (the same verdicts that were delivered).
+- As the last thing, a fenced `json` block with `{ "lang", "threads": [ { "thread", "verdict", "ref", "planStep", "reason", "correction" } ] }` (the same verdicts that were delivered).
 
 ## References
 

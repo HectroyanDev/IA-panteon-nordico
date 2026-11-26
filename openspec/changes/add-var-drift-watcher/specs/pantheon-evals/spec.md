@@ -2,7 +2,7 @@
 
 ## ADDED Requirements
 
-### Requirement: Casos de Vár
+### Requirement: REQ-011 Casos de Vár
 La suite SHALL incluir dos casos de `/var`: uno sin plan activo, que pasa solo si Vár dice que no hay plan que vigilar, y otro con un plan y un resumen de trabajo fuera de él en el encargo, que pasa solo si devuelve `desvío` con el paso del plan afectado. Ninguno de los dos MUST usar `Write` ni `Edit`.
 
 #### Scenario: Sin plan

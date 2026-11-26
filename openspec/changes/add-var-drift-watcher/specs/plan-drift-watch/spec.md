@@ -6,7 +6,7 @@ Vigilar en segundo plano que el trabajo en curso (hilo principal y subagentes) n
 
 ## ADDED Requirements
 
-### Requirement: Vár en el panteón
+### Requirement: REQ-001 Vár en el panteón
 El plugin SHALL incluir la skill `nordic-pantheon:var`, con `SKILL.md` y `references/role.md` como el resto de especialistas, que define el contrato del juicio de alineación. La vigilancia automática MUST correr en segundo plano sin que Bifröst la lance (salvo que esté desactivada, ver "Activación configurable"), y `/var` MUST hacer una comprobación puntual contra el plan activo que informa del veredicto y, si es `desvío`, corrige igual que la vigilancia automática.
 
 #### Scenario: Skill presente
@@ -25,7 +25,7 @@ El plugin SHALL incluir la skill `nordic-pantheon:var`, con `SKILL.md` y `refere
 - **WHEN** el humano escribe `/var` con un plan activo y el veredicto de un hilo es `desvío`
 - **THEN** Vár informa del veredicto y ese hilo recibe la misma corrección que enviaría la vigilancia automática, que queda registrada, aparece en el panel y genera una notificación
 
-### Requirement: Activación configurable
+### Requirement: REQ-002 Activación configurable
 Vár SHALL leer `VAR_ENABLED` (`on` u `off`) de `${XDG_CONFIG_HOME:-$HOME/.config}/nordic-pantheon/config` al activar cada plan. Sin config, sin la clave o con otro valor, MUST tomar `on`. Con `off`, la vigilancia automática MUST no activarse: no cuenta, no juzga, no abre el panel ni notifica por su cuenta. `/var` MUST seguir funcionando con `off`, informando y corrigiendo, porque el humano lo pide de forma explícita.
 
 #### Scenario: Vigilancia desactivada
@@ -40,7 +40,7 @@ Vár SHALL leer `VAR_ENABLED` (`on` u `off`) de `${XDG_CONFIG_HOME:-$HOME/.confi
 - **WHEN** la config indica `VAR_ENABLED=quizá`
 - **THEN** Vár toma `on`
 
-### Requirement: Plan activo en el camino plan mode
+### Requirement: REQ-003 Plan activo en el camino plan mode
 Cuando el humano aprueba un plan con `ExitPlanMode`, Vár SHALL tomar como plan activo el archivo de plan aprobado y empezar a vigilar desde ese momento. Un plan rechazado MUST no activar nada; un plan aprobado después MUST sustituir al anterior.
 
 #### Scenario: Plan aprobado
@@ -51,7 +51,7 @@ Cuando el humano aprueba un plan con `ExitPlanMode`, Vár SHALL tomar como plan 
 - **WHEN** el humano rechaza el plan en `ExitPlanMode`
 - **THEN** no hay plan activo y no se cuenta nada
 
-### Requirement: Plan activo en el camino OpenSpec
+### Requirement: REQ-004 Plan activo en el camino OpenSpec
 Cuando empieza la implementación de un change OpenSpec (Brokkr o `/opsx:apply` con un change identificable), Vár SHALL tomar como plan activo el `tasks.md` de ese change, junto con su `proposal.md` y `design.md` como contexto. Si no puede identificar un único change, MUST no activarse.
 
 #### Scenario: Implementación de un change
@@ -62,14 +62,14 @@ Cuando empieza la implementación de un change OpenSpec (Brokkr o `/opsx:apply` 
 - **WHEN** empieza una implementación sin nombre de change y hay más de un change activo
 - **THEN** Vár no activa la vigilancia y lo deja anotado en el panel
 
-### Requirement: Fin de la vigilancia
+### Requirement: REQ-005 Fin de la vigilancia
 La vigilancia SHALL terminar cuando empieza la validación (Heimdall o `/opsx:verify`), cuando se archiva el change, cuando todas las tareas del `tasks.md` vigilado están marcadas, cuando se aprueba otro plan o cuando termina la sesión.
 
 #### Scenario: Llega Heimdall
 - **WHEN** Bifröst carga a Heimdall con un plan vigilado
 - **THEN** Vár deja de contar y de juzgar, y el panel muestra la vigilancia como cerrada
 
-### Requirement: Disparo por umbral
+### Requirement: REQ-006 Disparo por umbral
 Con un plan activo y la vigilancia activada, Vár SHALL lanzar un juicio cuando, desde la activación o desde el último juicio (automático o de `/var`), pasen `VAR_MINUTES` minutos o se hagan `VAR_TOOL_CALLS` llamadas a herramientas, lo que llegue antes. Cuentan las llamadas del hilo principal y de todos sus subagentes, salvo las del propio `/var`. Tras cada juicio la ventana MUST empezar de nuevo.
 
 #### Scenario: Tarea corta
@@ -88,7 +88,7 @@ Con un plan activo y la vigilancia activada, Vár SHALL lanzar un juicio cuando,
 - **WHEN** una sesión trabaja 30 minutos y 200 llamadas sin plan aprobado ni change en implementación
 - **THEN** Vár no lanza ningún juicio
 
-### Requirement: Umbrales configurables
+### Requirement: REQ-007 Umbrales configurables
 Vár SHALL leer `VAR_MINUTES` y `VAR_TOOL_CALLS` de `${XDG_CONFIG_HOME:-$HOME/.config}/nordic-pantheon/config` al activar cada plan. Sin config, sin la clave o con un valor que no sea un entero positivo, MUST usar 10 y 40 y anotarlo en el panel.
 
 #### Scenario: Umbral cambiado
@@ -99,7 +99,7 @@ Vár SHALL leer `VAR_MINUTES` y `VAR_TOOL_CALLS` de `${XDG_CONFIG_HOME:-$HOME/.c
 - **WHEN** la config indica `VAR_MINUTES=diez`
 - **THEN** Vár usa 10 minutos y el panel lo indica
 
-### Requirement: Juicio de alineación
+### Requirement: REQ-008 Juicio de alineación
 Cada juicio SHALL comparar, con el modelo `opus` y esfuerzo `high`, el plan activo con lo hecho en la ventana por cada hilo con actividad (herramientas, archivos tocados, mensajes), y MUST devolver por hilo un veredicto `alineado`, `menor` o `desvío` con el paso del plan afectado y el motivo. Solo juzga alineación con el plan, no calidad ni corrección del código.
 
 #### Scenario: Trabajo alineado
@@ -114,7 +114,7 @@ Cada juicio SHALL comparar, con el modelo `opus` y esfuerzo `high`, el plan acti
 - **WHEN** el trabajo sigue el paso del plan pero el código tiene un error
 - **THEN** el veredicto no es `desvío` por ese error
 
-### Requirement: Reconducción sin esperar al humano
+### Requirement: REQ-009 Reconducción sin esperar al humano
 Ante un veredicto `desvío`, venga de la vigilancia automática o de `/var`, Vár SHALL inyectar en el hilo que se desvió (principal o subagente en curso) una corrección con el paso del plan que toca y lo que debe dejar de hacer, sin preguntar ni esperar al humano. Un veredicto `menor` MUST solo registrarse. Un hilo MUST recibir como mucho una corrección por ventana aunque coincidan un juicio automático y uno de `/var`.
 
 #### Scenario: Desvío en un subagente
@@ -133,7 +133,7 @@ Ante un veredicto `desvío`, venga de la vigilancia automática o de `/var`, Vá
 - **WHEN** `/var` marca `desvío` en el subagente de Brokkr mientras sigue trabajando
 - **THEN** ese subagente recibe la corrección por la misma vía y con la misma plantilla que en la vigilancia automática
 
-### Requirement: Límite de correcciones
+### Requirement: REQ-010 Límite de correcciones
 Si un mismo hilo recibe dos correcciones y el juicio siguiente vuelve a marcar `desvío`, Vár SHALL dejar de inyectar correcciones en ese hilo, marcarlo como desvío persistente en el panel y notificar al humano. Las correcciones y los juicios de `/var` MUST contar para este límite igual que los automáticos.
 
 #### Scenario: Desvío persistente
@@ -144,21 +144,21 @@ Si un mismo hilo recibe dos correcciones y el juicio siguiente vuelve a marcar `
 - **WHEN** un hilo ya recibió dos correcciones automáticas y `/var` vuelve a marcar `desvío` en él
 - **THEN** no recibe una tercera corrección y queda marcado como persistente
 
-### Requirement: Las correcciones no amplían el encargo
+### Requirement: REQ-011 Las correcciones no amplían el encargo
 Una corrección de Vár SHALL limitarse a recordar el plan aprobado: no añade pasos, no cambia requisitos y no autoriza acciones que el plan no recoja. Bifröst y los especialistas MUST tratarla así y seguir pidiendo permiso al humano para lo que el plan no cubra.
 
 #### Scenario: Corrección recibida
 - **WHEN** Brokkr recibe una corrección de Vár
 - **THEN** vuelve al paso del plan indicado y no toma la corrección como permiso para nada fuera del plan
 
-### Requirement: Registro de juicios
+### Requirement: REQ-012 Registro de juicios
 Cada juicio, automático o de `/var`, SHALL quedar registrado en la sesión con la hora, el origen (automático o `/var`), el hilo, el veredicto, el paso del plan, el motivo y, si la hubo, la corrección enviada. Cada corrección MUST dejar además un aviso visible en la transcripción.
 
 #### Scenario: Corrección registrada
 - **WHEN** Vár envía una corrección
 - **THEN** el registro tiene la entrada con la corrección y la transcripción muestra un aviso de Vár
 
-### Requirement: Panel lateral
+### Requirement: REQ-013 Panel lateral
 En la app de escritorio, Vár SHALL mostrar un panel lateral con el plan vigilado, los contadores de la ventana actual, los umbrales, si la vigilancia automática está activada y el registro de juicios, con cada desvío y su corrección destacados. El panel MUST poder abrirse a mano y abrirse solo al activarse un plan con la vigilancia activada.
 
 #### Scenario: Plan activado
@@ -169,14 +169,14 @@ En la app de escritorio, Vár SHALL mostrar un panel lateral con el plan vigilad
 - **WHEN** un juicio marca `desvío`
 - **THEN** el panel muestra qué hilo se desvió, del paso de qué plan y qué corrección se envió
 
-### Requirement: Notificación de desvío
+### Requirement: REQ-014 Notificación de desvío
 Cada veredicto `desvío` y cada desvío persistente, automático o de `/var`, SHALL generar una notificación del sistema con el hilo y el paso del plan. Los veredictos `alineado` y `menor` MUST no notificar.
 
 #### Scenario: Notificación
 - **WHEN** un juicio marca `desvío`
 - **THEN** el humano recibe una notificación del sistema aunque la app esté en segundo plano
 
-### Requirement: Sin solapamiento con Heimdall
+### Requirement: REQ-015 Sin solapamiento con Heimdall
 Vár SHALL no ejecutar tests, no validar contra criterios de aceptación, no editar código, el plan ni `tasks.md`, y no guardar nada en la memoria de Munin.
 
 #### Scenario: Vigilancia sin escritura

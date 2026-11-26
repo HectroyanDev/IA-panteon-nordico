@@ -104,8 +104,9 @@ export const register: Register = on => {
         {entries.slice(0, 30).map(l => (
           <Box flexDirection="column">
             <Text bold={l.verdict === 'desvío'} color={l.verdict === 'desvío' ? 'red' : l.verdict === 'fallido' ? 'yellow' : undefined} dimColor={l.verdict === 'alineado'}>
-              {hhmm(l.at)} [{l.origin === 'manual' ? '/var' : 'auto'}] {threadLabel(l.thread)}: {l.verdict}
+              {hhmm(l.at)} [{l.origin === 'manual' ? '/var' : l.origin}] {threadLabel(l.thread)}: {l.verdict}
               {l.persistent ? ' · PERSISTENTE' : ''}
+              {l.ref ? ` · ${trunc(l.ref, 40)}` : ''}
               {l.planStep ? ` · ${trunc(l.planStep, 80)}` : ''}
             </Text>
             {l.reason && l.verdict !== 'alineado' && <Text dimColor>  {trunc(l.reason, 200)}</Text>}

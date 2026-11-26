@@ -22,7 +22,7 @@ Do not use for mechanical one-shots (rename, typo, exact command) or when the us
 - Independent unknowns may share one message. Dependent unknowns stay sequential.
 - "Whatever you think", "sounds good", or silence is not confirmation.
 - Follow `../_shared/communication.md` (language, tone, banned tropes, questions with their why).
-- Do not start spec, plan, or code until the user gives an explicit yes on the restate. Exception: in plan mode the plan file is how you ask for the yes, and the `ExitPlanMode` approval is that yes (see `references/plan-mode.md`).
+- Do not start spec, plan, or code until the user gives an explicit yes on the restate (OpenSpec path: on the stories). Exception: in plan mode the plan file is how you ask for the yes, and the `ExitPlanMode` approval is that yes (see `references/plan-mode.md`).
 - If the same workflow appears twice, or the user describes a reusable process, load `skill-creator` and write a skill. Then load `skill-registry`.
 
 ## Decision Gates
@@ -40,10 +40,10 @@ Do not use for mechanical one-shots (rename, typo, exact command) or when the us
 
 1. Write `Known` vs `Unknown`. Do not fill Unknown with invention.
 2. Ask only blocking questions with `AskUserQuestion`. Format in `references/questioning.md`. STOP.
-3. Fold answers. Restate: Outcome, User, Why now, Success, Constraint, Out of scope.
-4. Ask for confirmation with `AskUserQuestion` (`Sí, confirmo` / `Corregir`). Only `Sí, confirmo` counts as yes. If corrected, restate again.
+3. Fold answers. OpenSpec path: write 1–3 user stories ("Como <rol> quiero <capacidad> para <beneficio>", each with 3–5 scenarios as acceptance criteria; format in `references/questioning.md`) instead of the six-field restate. Otherwise restate: Outcome, User, Why now, Success, Constraint, Out of scope.
+4. Ask for confirmation with `AskUserQuestion` (`Sí, confirmo` / `Corregir`). Only `Sí, confirmo` counts as yes. If corrected, adjust the stories (or restate) and ask again. In the OpenSpec path this `Sí, confirmo` is the only stop: it also replaces the review of the proposal, and Skuld plans without asking again.
    In plan mode skip steps 3–4: follow `references/plan-mode.md` instead (the plan file replaces the restate and `ExitPlanMode` replaces the confirmation).
-5. Hand off to **Bifröst** with the confirmed restate. Bifröst may invoke `/opsx:propose` or another `/opsx:*` phase — you do not choose or run those phases.
+5. Hand off to **Bifröst** with the confirmed stories (or restate). Bifröst may invoke `/opsx:propose` or another `/opsx:*` phase — you do not choose or run those phases.
 6. After the work, if steps/checks/output will recur, create a skill with `skill-creator` instead of repeating the ritual in chat.
 
 ## Memory
@@ -54,12 +54,12 @@ Historical context or prior decisions → ask Bifröst to delegate to Munin (Bif
 
 Return:
 - Known vs unknown (before questions), or skip this when elicitation was not needed.
-- Blocking questions, then a stop — or the confirmed restate after yes.
+- Blocking questions, then a stop — or the confirmed stories (restate outside OpenSpec) after yes.
 - Whether a new/updated skill was created, with path.
 
 ## References
 
-- `references/questioning.md` — Odín's own mapping, fallback format and confirmation gate
+- `references/questioning.md` — Odín's own mapping, fallback format, story format and confirmation gate
 - `../_shared/communication.md` — shared communication rules (language, tone, banned tropes, questions)
 - `references/plan-mode.md` — plan-mode flow and plan template
 - `~/.claude/skills/skill-creator/SKILL.md` — create reusable skills
