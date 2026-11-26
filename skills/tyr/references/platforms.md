@@ -32,7 +32,7 @@ URL: `https://github.com/{owner}/{repo}/pull/{n}`.
 ```
 
 - Omite `start_line`/`start_side` en comentarios de una línea.
-- GitHub no deja aprobar ni pedir cambios en una PR propia: si `author.login` == usuario actual, usa `"event": "COMMENT"` y dilo en la salida.
+- GitHub no deja aprobar ni pedir cambios en una PR propia: si `author.login` == usuario actual, o si la primera línea no vacía del `body` es la cabecera `> **Recreated from Bitbucket** [...], opened by **<Nombre>** ...` y `<Nombre>` coincide con `git config --global user.name` (sin distinguir mayúsculas, tildes ni espacios repetidos), la PR es propia: usa `"event": "COMMENT"` y dilo en la salida.
 - Escribe `review.json` en el scratchpad, no en el repo.
 
 ## Bitbucket (MCP Atlassian)

@@ -67,7 +67,7 @@ Do not use for: reviewing the local working tree without a PR (`/code-review`), 
 - Counts by severity, re-review counts (fixed / pending / outdated).
 - Verdict applied, or "no publicado" with the reason.
 - Ids of published comments; any publish error verbatim.
-- With `--auto` (and in each PR of `nightly`), end with one fenced block tagged `tyr-result`, a single JSON object: `url`, `platform`, `headSha`, `kind` (`review`, `rereview` or `too-large`), `verdict` (`approved`, `changes_requested`, `commented` for a GitHub PR of the user's own, `none` for the size gate or `dry-run`), `counts` (`new` and `pending` by `alta`/`media`/`baja`; `fixed`, `outdated`), `findings` (list of `{severity, file, line, title}`; `pending` ones included and flagged `pending: true`), `pendingJustified` (author replies awaiting the human), `published` (ids returned by the platform) and `errors` (verbatim).
+- With `--auto` (and in each PR of `nightly`), end with one fenced block tagged `tyr-result`, a single JSON object: `url`, `platform`, `headSha`, `kind` (`review`, `rereview` or `too-large`), `verdict` (`approved`, `changes_requested`, `commented` for a GitHub PR of the user's own (including one recreated from Bitbucket under their name; see `references/platforms.md`), `none` for the size gate or `dry-run`), `counts` (`new` and `pending` by `alta`/`media`/`baja`; `fixed`, `outdated`), `findings` (list of `{severity, file, line, title}`; `pending` ones included and flagged `pending: true`), `pendingJustified` (author replies awaiting the human), `published` (ids returned by the platform) and `errors` (verbatim).
 
 ## References
 

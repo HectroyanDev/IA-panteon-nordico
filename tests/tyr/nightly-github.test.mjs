@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { collect, normalizePr, assertReadOnly, TYR_SIGNATURE, TOO_LARGE_MARKER } from "../../skills/tyr/scripts/nightly-github.mjs";
+import { collect, normalizePr, recreatedAuthor, normalizeName, isOwnPr, assertReadOnly, TYR_SIGNATURE, TOO_LARGE_MARKER } from "../../skills/tyr/scripts/nightly-github.mjs";
 
 const nd = (arr) => arr.map((x) => JSON.stringify(x)).join("\n");
 const view = (n, over = {}) => ({ number: n, title: `PR ${n}`, isDraft: false, headRefOid: `head${n}`, author: { login: "ana" }, createdAt: `2026-11-0${n}T10:00:00Z`, url: `https://github.com/Casfid/r/pull/${n}`, state: "OPEN", headRefName: `b${n}`, ...over });
@@ -72,4 +72,54 @@ test("collect falla limpio sin owner o sin sesión", () => {
 test("assertReadOnly rechaza escrituras", () => {
   for (const a of [["pr", "review", "1"], ["api", "x", "-X", "POST"], ["api", "x", "-f", "a=b"], ["api", "x", "--input", "f"], ["issue", "comment"], ["api", "graphql", "-f", "query=x"], ["api", "x", "-H", "Accept: application/vnd.github.raw"], ["api", "x", "--header", "X: y"]]) assert.throws(() => assertReadOnly(a), a.join(" "));
   assert.doesNotThrow(() => assertReadOnly(["api", "repos/o/r/pulls/1/reviews", "--paginate"]));
+});
+
+const HEADER = (name) => `> **Recreated from Bitbucket** [casfidIdasfest/usuarioscashless#907](https://bitbucket.org/casfidIdasfest/usuarioscashless/pull-requests/907), opened by **${name}** on 2026-11-19 14:09 UTC, last updated 2026-11-24 08:18 UTC.\n\nTexto`;
+
+test("recreatedAuthor: con cabecera, sin ella y con cabecera fuera de la primera línea", () => {
+  assert.equal(recreatedAuthor(HEADER("Héctor Ferrán González Romero")), "Héctor Ferrán González Romero");
+  assert.equal(recreatedAuthor("\n\n" + HEADER("Ana")), "Ana");
+  assert.equal(recreatedAuthor("Descripción normal"), null);
+  assert.equal(recreatedAuthor(`Intro\n${HEADER("Ana")}`), null);
+  assert.equal(recreatedAuthor(undefined), null);
+});
+
+test("normalizeName: tildes, mayúsculas y espacios", () => {
+  assert.equal(normalizeName("  Héctor  Ferrán   González Romero "), "hector ferran gonzalez romero");
+  assert.equal(normalizeName(null), "");
+});
+
+test("isOwnPr: login, cabecera con el nombre, otro autor y nombre vacío", () => {
+  const self = "Hector Ferran Gonzalez Romero";
+  assert.equal(isOwnPr({ author: { login: "hector" }, body: "" }, "hector", ""), true);
+  assert.equal(isOwnPr({ author: { login: "jorge" }, body: HEADER("Héctor Ferrán González Romero") }, "hector", self), true);
+  assert.equal(isOwnPr({ author: { login: "jorge" }, body: HEADER("Iván Hernández Ojeda") }, "hector", self), false);
+  assert.equal(isOwnPr({ author: { login: "jorge" }, body: HEADER("Héctor Ferrán González Romero") }, "hector", ""), false);
+  assert.equal(isOwnPr({ body: "" }, "", ""), false);
+  assert.equal(isOwnPr({ body: "" }, undefined, ""), false);
+});
+
+test("collect: descarta la recreada con el nombre del humano, mantiene la de otro autor y tolera git config roto", () => {
+  const { run } = fakeGh();
+  const bodies = { 1: HEADER("Héctor Ferrán González Romero"), 2: HEADER("Iván Hernández Ojeda") };
+  const wrapped = (cmd, args, o) => {
+    if (args[0] === "pr") {
+      const n = Number(/pull\/(\d)/.exec(args[2])[1]);
+      const r = run(cmd, args, o);
+      const v = JSON.parse(r.stdout);
+      return { ...r, stdout: JSON.stringify({ ...v, author: { login: "jorge" }, body: bodies[n] ?? "" }) };
+    }
+    return run(cmd, args, o);
+  };
+  const git = (name) => () => ({ status: 0, stdout: `${name}\n`, stderr: "" });
+  let gitArgs;
+  const env = collect({ owner: "Casfid", run: wrapped, runGit: (c, a, o) => { gitArgs = [c, ...a]; return git("Hector Ferran Gonzalez Romero")(c, a, o); } });
+  assert.deepEqual(gitArgs, ["git", "config", "--global", "--get", "user.name"]);
+  assert.deepEqual(env.prs.map((p) => p.number), [2, 3]);
+  assert.equal(env.selfName, "Hector Ferran Gonzalez Romero");
+  assert.deepEqual(env.ownRecreated, [view(1).url]);
+  const broken = collect({ owner: "Casfid", run: wrapped, runGit: () => ({ status: 1, stdout: "", stderr: "x" }) });
+  assert.equal(broken.selfName, "");
+  assert.deepEqual(broken.prs.map((p) => p.number), [1, 2, 3]);
+  assert.deepEqual(broken.ownRecreated, []);
 });
